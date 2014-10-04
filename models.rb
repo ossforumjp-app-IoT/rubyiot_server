@@ -1,4 +1,9 @@
 class User < ActiveRecord::Base
+  attr_readonly :password_hash
+
+  def password(p)
+    self.password_hash = Digest::SHA256.hexdigest(s)
+  end
 end
 
 class Gateway < ActiveRecord::Base

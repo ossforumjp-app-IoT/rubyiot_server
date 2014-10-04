@@ -1,0 +1,32 @@
+!!!
+%haml{:lang => "ja"}
+  %head
+    %script{:type => "text/javascript", :src => "/js/sha.js"}
+    :javascript
+      function login(password){
+        var frm = document.loginform
+        if(frm.elements["username"].value==""){
+          alert("ユーザー名を入力してください");
+        }else if(frm.elements["password"].value==""){
+          alert("パスワードを入力してください");
+        }else{
+          var pwd = frm.elements["password"].value;
+          var shaObj = new jsSHA(pwd, "ASCII");
+          frm.elements["password_hash"] = shaObj.getHash("SHA-256", "HEX");
+          frm.elements["password"] = ""
+          frm.submit();
+        }
+      }
+  %body
+    %h1 Log In
+    %form{:name => "loginform", :action => '/login', :method => 'post'}
+      %fieldset
+        %p
+          %label{:for => "username"} ユーザー名:
+          %input{:name => "username", :type => "text", :value => ""}
+        %p
+          %label{:for => "password"} パスワード:
+          %input{:name => "password", :type => "password", :value => ""}
+          %input{:name => "password_hash", :type => "hidden", :value => ""}
+        %p
+          %input{:type => "button", :value => "Login", :onclick => "return login(this.form)"}
