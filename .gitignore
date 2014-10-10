@@ -36,6 +36,7 @@ Gemfile.lock
 # for Mac
 .DS_Store
 
+/backup/
 /vendor/
 *.db
 *.log
