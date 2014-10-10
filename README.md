@@ -71,7 +71,7 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
             }
 
 * POST /api/sensor  
-  * 機能: センサーの名前を登録・更新する。
+  * 機能: sensorの名前を登録・更新する。
   * アクセス: mobile => server
   * POSTデータ: 以下のJSON形式のデータ
   （keyの"xxx"はserverで管理するsensor_id）
@@ -86,13 +86,13 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
   （1階層目のkeyの"yyy"、"zzz"は、serverで管理するsensor_id）
 
             { "yyy":
-              { "name": "キッチンのガス漏れセンサー",
+              { "name": "ex: キッチンのガス漏れセンサー",
                 "property_name": "Detection threshold level" },
 
               ...
 
               "zzz":
-              { "name": "リビングの温度計"
+              { "name": "ex: リビングの温度計"
                 "data-unit": "degree Celsius",
                 "property_name": "Measured temperature value" },
 
@@ -100,8 +100,33 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
 
             }
 
+* POST /api/controller  
+  * 機能: controllerの名前を登録・更新する。
+  * アクセス: mobile => server
+  * POSTデータ: 以下のJSON形式のデータ
+  （keyの"xxx"はserverで管理するcontroller_id）
+
+            { "xxx": { "name": "機器と操作の内容" } }
+
+* GET /api/controller?gateway_id=xxx  
+  * 機能: 指定したgatewayの配下にあるsensorのリストを取得する。
+  * アクセス: mobile => server
+  * クエリ: gateway_id
+  * GETデータ: 以下のJSON形式のデータ  
+  （1階層目のkeyの"yyy"は、serverで管理するcontroller_id
+  value_rangeは、"min""max"による値の範囲か、操作内容と値の列挙）
+
+            { "yyy":
+              { "name": "ex: リビングのエアコンの電源",
+                "property_name": "Operation status",
+                "value_range": { "ON": "0", "OFF": "1" },
+                "value": "1" }
+              ...
+
+            }
+
 * POST /api/monitor  
-  * 機能: センサーの監視値（上限値・下限値）を登録・更新する。
+  * 機能: sensorの監視値（上限値・下限値）を登録・更新する。
   * アクセス: mobile, gateway => server
   * POSTデータ: 以下の形式のJSONデータ  
   （1階層目のkeyの"xxx"はserverで管理するsensor_id）
@@ -109,7 +134,7 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
             { "xxx": { "min": "下限値", "max": "上限値" } }
 
 * GET /api/monitor?sensor_id=xxx  
-  * 機能: センサーの監視値（上限値・下限値）を取得する。
+  * 機能: sensorの監視値（上限値・下限値）を取得する。
   * アクセス: mobile, gateway => server
   * クエリ: sensor_id
   * GETデータ: 以下のJSON形式のデータ
@@ -131,20 +156,71 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
     span（5-minutely, hourly, daily, weekly, monthly, yearlyのいずれか。
     5-minutely, hourlyはstartが48時間以上前の場合は指定できない。）
   * GETデータ: 以下のJSON形式のデータ
-  （測定時刻の間隔はspanによって、件数が366件以下になるように調整）
+  （測定時刻の間隔は下表のようにspanによって調整し、件数が概ね200件以下になるようにする）
 
             { "測定時刻": "測定値", "測定時刻": "測定値", ... }
 
-* GET /api/sensor_aleart?sensor_id=xxx&datetime=2014-10-10+12:00:00  
+  | span       | 間隔  | 件数  |
+  |------------|-------|------|
+  | 5-minutely |   3秒 |  100 |
+  | hourly     |  30秒 |  120 |
+  | daily(※)  |  10分 |  144 |
+  | weekly     | 1時間 |  168 |
+  | monthly    | 6時間 |  124 |
+  | yearly     |   1日 |  366 |
+  ※dailyは、48時間以上前の場合、1時間間隔24件となる。
+
+* GET /api/sensor_alert?sensor_id=xxx&datetime=2014-10-10+12:00:00  
   * 機能: 現在もしくは指定した時刻の測定値が、異常値であったかを取得する。
   * アクセス: mobile => server
   * クエリ: sensor_id, datetime（指定しない場合は現在時刻）
   * GETデータ: 以下のJSON形式のデータ
 
-            { "aleart": "< 0 | 1 >", "value": "測定値",
+            { "alert": "< 0:無 | 1:有 >", "value": "測定値",
               "min": "下限値", "max": "上限値" }
 
+* POST /api/operation  
+  * 機能: controllerへの操作指示を登録する。
+  * アクセス: mobile => server
+  * POSTデータ: 以下のJSON形式のデータ
+  （keyの"xxx"はserverで管理するcontroller_id、
+  操作値はECHONET機器オブジェクト詳細規定による。
+  今回は ON/OFF の 0/1 のみ。）
 
+            { "xxx": "操作値" }
+
+  * 応答データ: 以下のJSON形式のデータ  
+
+            { "operation_id": "xxx" }
+
+* GET /api/operation?gateway_id=xxx  
+  * 機能: controllerへの操作指示を取得する。（1リクエストにつき1操作）
+  * アクセス: gateway => server
+  * クエリ: gateway_id
+  * GETデータ: 以下のJSON形式のデータ  
+  （keyの"xxx"はserverで管理するcontroller_id、
+  操作値はECHONET機器オブジェクト詳細規定による。
+  今回は、0:ON, 1:OFFのみ。）
+
+            { "xxx": { "operation_id": "yyy", "value": "操作値" }
+
+* POST /api/operation_status  
+  * 機能: controllerへの操作指示を登録する。
+  * アクセス: gateway => server
+  * POSTデータ: 以下のJSON形式のデータ
+  （keyの"xxx"はserverで管理するoperation_id、
+  実行結果は、0:成功, 1:失敗）
+
+            { "xxx": "実行結果" }
+
+* GET /api/operation_status?operation_id=xxx  
+  * 機能: controllerへの操作指示の内容と状態を取得する。
+  * アクセス: mobile => server
+  * クエリ: operation_id
+  * GETデータ: 以下のJSON形式のデータ  
+  （状態値は、0:未実行, 1:実行中, 2:完了, 9:異常）
+
+            { "value": "操作値", "status": "状態値" }
 
 
 動作環境
