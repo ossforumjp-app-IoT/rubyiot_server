@@ -4,8 +4,8 @@ class CreateDevices < ActiveRecord::Migration
       t.integer :gateway_id
       t.string :hardware_uid
       t.string :name
-      t.column :class_group_code :"char(4)"
-      t.column :class_code :"char(4)"
+      t.column :class_group_code, :"char(4)"
+      t.column :class_code, :"char(4)"
       t.timestamps
     end
   end

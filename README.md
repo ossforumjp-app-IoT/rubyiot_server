@@ -202,7 +202,7 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
   操作値はECHONET機器オブジェクト詳細規定による。
   今回は、0:ON, 1:OFFのみ。）
 
-            { "xxx": { "operation_id": "yyy", "value": "操作値" }
+            { "xxx": { "operation_id": "yyy", "value": "操作値" } }
 
 * POST /api/operation_status  
   * 機能: controllerへの操作指示を登録する。

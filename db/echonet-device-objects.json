@@ -1,162 +1,135 @@
-{
-  "class-groups": [
-    { "class-group-code": "0x00",
-      "class-group-name": "Sensor-related Device",
-      "classes": [
-        { "class-code": "0x01",
-          "class-name": "Gas leak sensor",
-          "properties": [
-            { "property-name": "Operation status",
-              "property-code": "0x80",
-              "data-type": "unsigned char",
-              "data-size": 1,
-              "value-range": [ "0", "1" ],
-              "set": "optional",
-              "get": "mandatory"
-            },
-            { "property-name": "Detection threshold level",
-              "property-code": "0xB0",
-              "data-type": "unsigned char",
-              "data-size": 1,
-              "value-range": [ "1", "2", "3", "4", "5", "6", "7", "8" ],
-              "set": "optional",
-              "get": "optional"
-            },
-            { "property-name": "Gas leak occurrence status",
-              "property-code": "0xB1",
-              "data-type": "unsigned char",
-              "data-size": 1,
-              "value-range": [ "A", "B" ],
-              "get": "mandatory"
-            },
-            { "property-name": "Gas leak occurrence status resetting",
-              "property-code": "0xBF",
-              "data-type": "unsigned char",
-              "data-size": 1,
-              "value-range": [ "\u0000" ],
-              "set": "optional"
-            }
-          ]
-        },
-        { "class-code": "0x02",
-          "class-name": "Crime prevention sensor",
-          "properties": []
-        },
-        { "class-code": "0x03",
-          "class-name": "Emergency button",
-          "properties": []
-        },
-        { "class-code": "0x04",
-          "class-name": "First-aid sensor",
-          "properties": []
-        },
-        { "class-code": "0x05",
-          "class-name": "Earthquake sensor",
-          "properties": []
-        },
-        { "class-code": "0x0D",
-          "class-name": "Illuminance sensor",
-          "properties": [
-            { "property-name": "Operation status",
-              "property-code": "0x80",
-              "data-type": "unsigned char",
-              "data-size": 1,
-              "value-range": [ "0", "1" ],
-              "set": "optional",
-              "get": "mandatory"
-            },
-            { "property-name": "Measured illuminance value",
-              "property-code": "0xB0",
-              "data-type": "unsigned short",
-              "value-range": { "min": 0, "max": 65533 },
-              "unit": "lux",
-              "get": "mandatory"
-            }
-          ]
-        },
-        { "class-code": "0x11",
-          "class-name": "Temperature sensor",
-          "properties": [
-            { "property-name": "Operation status",
-              "property-code": "0x80",
-              "data-type": "unsigned char",
-              "data-size": 1,
-              "value-range": [ "0", "1" ],
-              "set": "optional",
-              "get": "mandatory"
-            },
-            { "property-name": "Measured temperature value",
-              "property-code": "0xB0",
-              "data-type": "signed short",
-              "value-range": { "min": 2732, "max": 32766 },
-              "magnification": 0.1,
-              "unit": "degree Celsius",
-              "get": "mandatory"
-            }
-          ]
-        }
-      ]
+{ "0x00":
+  { "class_group_name": "Sensor-related Device",
+    "0x01":
+    { "class_name": "Gas leak sensor",
+      "0x80":
+      { "property_name": "Operation status",
+        "data_type": "unsigned char",
+        "data_size": 1,
+        "value_range": { "ON": "0", "OFF": "1" },
+        "set": "optional",
+        "get": "mandatory"
+      },
+      "0xB0":
+      { "property_name": "Detection threshold level",
+        "data_type": "unsigned char",
+        "data_size": 1,
+        "value_range": { "min": "1", "max": "8" },
+        "set": "optional",
+        "get": "optional"
+      },
+      "0xB1":
+      { "property_name": "Gas leak occurrence status",
+        "data_type": "unsigned char",
+        "data_size": 1,
+        "value_range": { "not-detect": "A", "detect": "B" },
+        "get": "mandatory"
+      },
+      "0xBF":
+      { "property_name": "Gas leak occurrence status resetting",
+        "data_type": "unsigned char",
+        "data_size": 1,
+        "value_range": { "reset": "\u0000" },
+        "set": "optional"
+      }
     },
-    { "class-group-code": "0x01",
-      "class-group-name": "Air Conditioner-related Device",
-      "classes": [
-        { "class-code": "0x32",
-          "class-name": "Electric fan",
-          "properties": [
-            { "property-name": "Operation status",
-              "property-code": "0x80",
-              "data-type": "unsigned char",
-              "data-size": 1,
-              "value-range": [ "0", "1" ],
-              "set": "mandatory",
-              "get": "mandatory"
-            }
-          ]
-        }
-      ]
+    "0x02":
+    { "class_name": "Crime prevention sensor"
     },
-    { "class-group-code": "0x02",
-      "class-group-name": "Housing/Facilities-related Device",
-      "classes": [
-        { "class-code": "0x91",
-          "class-name": "Simple lighting",
-          "properties": [
-            { "property-name": "Operation status",
-              "property-code": "0x80",
-              "data-type": "unsigned char",
-              "data-size": 1,
-              "value-range": [ "0", "1" ],
-              "set": "mandatory",
-              "get": "mandatory"
-            },
-            { "property-name": "Illuminance level",
-              "property-code": "0xB0",
-              "data-type": "unsigned char",
-              "data-size": 1,
-              "value-range": { "min": 0, "max": 100 },
-              "unit": "%",
-              "set": "optional",
-              "get": "optional"
-            }
-          ]
-        }
-      ]
+    "0x03":
+    { "class_name": "Emergency button"
     },
-    { "class-group-code": "0x03",
-      "class-group-name": "Cooking/Household-related Device",
-      "classes": []
+    "0x04":
+    { "class_name": "First-aid sensor"
     },
-    { "class-group-code": "0x04",
-      "class-group-name": "Health-related Device",
-      "classes": []
+    "0x05":
+    { "class_name": "Earthquake sensor"
     },
-    { "class-group-code": "0x05",
-      "class-group-name": "Management/Operation-related Device",
-      "classes": []
+    "0x0D":
+    { "class_name": "Illuminance sensor",
+      "0x80":
+      { "property_name": "Operation status",
+        "data_type": "unsigned char",
+        "data_size": 1,
+        "value_range": { "ON": "0", "OFF": "1" },
+        "set": "optional",
+        "get": "mandatory"
+      },
+      "0xB0":
+      { "property_name": "Measured illuminance value",
+        "data_type": "unsigned short",
+        "value_range": { "min": 0, "max": 65533 },
+        "unit": "lux",
+        "get": "mandatory"
+      }
     },
-    { "class-group-code": "0x06",
-      "class-group-name": "Audiovisual-related Device",
-      "classes": []
+    "0x11":
+    { "class_name": "Temperature sensor",
+      "0x80":
+      { "property_name": "Operation status",
+        "data_type": "unsigned char",
+        "data_size": 1,
+        "value_range": { "ON": "0", "OFF": "1" },
+        "set": "optional",
+        "get": "mandatory"
+      },
+      "0xB0":
+      { "property_name": "Measured temperature value",
+        "data_type": "signed short",
+        "value_range": { "min": 2732, "max": 32766 },
+        "magnification": 0.1,
+        "unit": "degree Celsius",
+        "get": "mandatory"
+      }
     }
-  ]
+  },
+  "0x01":
+  { "class_group_name": "Air Conditioner-related Device",
+    "0x32":
+    { "class_name": "Electric fan",
+      "0x80":
+      { "property_name": "Operation status",
+        "data_type": "unsigned char",
+        "data_size": 1,
+        "value_range": { "ON": "0", "OFF": "1" },
+        "set": "mandatory",
+        "get": "mandatory"
+      }
+    }
+  },
+  "0x02":
+  { "class_group_name": "Housing/Facilities-related Device",
+    "0x91":
+    { "class_name": "Simple lighting",
+      "0x80":
+      { "property_name": "Operation status",
+        "data_type": "unsigned char",
+        "data_size": 1,
+        "value_range": { "ON": "0", "OFF": "1" },
+        "set": "mandatory",
+        "get": "mandatory"
+      },
+      "0xB0":
+      { "property_name": "Illuminance level",
+        "data_type": "unsigned char",
+        "data_size": 1,
+        "value_range": { "min": 0, "max": 100 },
+        "unit": "%",
+        "set": "optional",
+        "get": "optional"
+      }
+    }
+  },
+  "0x03":
+  { "class_group_name": "Cooking/Household-related Device"
+  },
+  "0x04":
+  { "class_group_name": "Health-related Device"
+  },
+  "0x05":
+  { "class_group_name": "Management/Operation-related Device"
+  },
+  "0x06":
+  { "class_group_name": "Audiovisual-related Device"
+  }
 }

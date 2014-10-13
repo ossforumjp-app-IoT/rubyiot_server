@@ -5,9 +5,9 @@ class CreateDeviceProperties < ActiveRecord::Migration
       t.integer :device_id
       t.string :name
       t.boolean :sensor
-      t.column :class_group_code :"char(4)"
-      t.column :class_code :"char(4)"
-      t.column :property_code :"char(4)"
+      t.column :class_group_code, :"char(4)"
+      t.column :class_code, :"char(4)"
+      t.column :property_code, :"char(4)"
       t.timestamps
     end
   end
