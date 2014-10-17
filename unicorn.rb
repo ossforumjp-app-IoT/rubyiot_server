@@ -1,5 +1,4 @@
 @dir = Dir::pwd
-#@dir = "/Users/t-hirota/Documents/rubyiot_server"
 
 worker_processes 2
 working_directory @dir

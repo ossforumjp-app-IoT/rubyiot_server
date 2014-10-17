@@ -113,8 +113,8 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
   * アクセス: mobile => server
   * クエリ: gateway_id
   * GETデータ: 以下のJSON形式のデータ  
-  （1階層目のkeyの"yyy"は、serverで管理するcontroller_id
-  value_rangeは、"min""max"による値の範囲か、操作内容と値の列挙）
+  （1階層目のkeyの"yyy"は、serverで管理するcontroller_id）  
+  （value_rangeは、"min","max"による値の範囲か、操作内容と値の列挙）
 
             { "yyy":
               { "name": "ex: リビングのエアコンの電源",
@@ -177,15 +177,14 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
   * GETデータ: 以下のJSON形式のデータ
 
             { "alert": "< 0:無 | 1:有 >", "value": "測定値",
-              "min": "下限値", "max": "上限値" }
+              "datetime": "測定時刻", "min": "下限値", "max": "上限値" }
 
 * POST /api/operation  
   * 機能: controllerへの操作指示を登録する。
   * アクセス: mobile => server
   * POSTデータ: 以下のJSON形式のデータ
-  （keyの"xxx"はserverで管理するcontroller_id、
-  操作値はECHONET機器オブジェクト詳細規定による。
-  今回は ON/OFF の 0/1 のみ。）
+  （keyの"xxx"はserverで管理するcontroller_id）  
+  （操作値はECHONET機器オブジェクト詳細規定による。今回は ON/OFF の 0/1 のみ。）
 
             { "xxx": "操作値" }
 
@@ -198,9 +197,8 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
   * アクセス: gateway => server
   * クエリ: gateway_id
   * GETデータ: 以下のJSON形式のデータ  
-  （keyの"xxx"はserverで管理するcontroller_id、
-  操作値はECHONET機器オブジェクト詳細規定による。
-  今回は、0:ON, 1:OFFのみ。）
+  （keyの"xxx"はserverで管理するcontroller_id）  
+  （操作値はECHONET機器オブジェクト詳細規定による。今回は、0:ON, 1:OFFのみ。）
 
             { "xxx": { "operation_id": "yyy", "value": "操作値" } }
 
@@ -223,11 +221,24 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
             { "value": "操作値", "status": "状態値" }
 
 
-動作環境
+使用方法
 --------
+## 動作環境
 最低限、以下のソフトウェアがインストールされている必要があります。
 * Ruby 2.1.3
 * SQLite 3
+
+## デプロイ
+本番環境の場合、アプリケーションを導入するディレクトリで、以下のようにコマンドを実行します。
+
+    $ git clone https://github.com/ossforumjp-app-IoT/rubyiot_server.git
+    $ cd rubyiot_server
+    $ mkdir log
+    $ mkdir tmp
+    $ bundle install --path vendor/bundle
+    $ bundle exec rake db:migrate RAILS_ENV=production
+    $ bundle exec unicorn -c unicorn.rb -E production -D
+
 
 ライセンス
 ----------
