@@ -9,15 +9,3 @@ gem "sinatra"
 gem "sinatra-contrib"
 gem "sinatra-activerecord", :require => 'sinatra/activerecord'
 gem "unicorn"
-
-group :development do
-
-end
-
-group :test do
-
-end
-
-group :production do
-
-end

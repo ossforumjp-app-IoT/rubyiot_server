@@ -9,8 +9,10 @@ require 'sinatra/reloader'
 
 require_relative './models'
 
+rails_env = ENV["RAILS_ENV"] ? ENV["RAILS_ENV"].to_sym : :development
+
 ActiveRecord::Base.configurations = YAML.load_file('db/database.yml')
-ActiveRecord::Base.establish_connection(:development)
+ActiveRecord::Base.establish_connection(rails_env)
 
 module JSONex
   include JSON
@@ -47,8 +49,6 @@ class MainApp < Sinatra::Base
 
   get '/' do
     "hello world!"
-
-
   end
 
   get '/login' do
@@ -138,6 +138,18 @@ class MainApp < Sinatra::Base
   end
 
   post '/api/sensor' do
+    posted_json = request.body.read
+
+    unless posted_json
+      halt 400, {'Content-Type' => 'text/plain'}, "No data is posted."
+    end
+
+    posted_hash = JSONex::parse_ex(posted_json).symbolize_keys
+
+    unless posted_hash
+      halt 400, {'Content-Type' => 'text/plain'}, "Posted JSON is invalid."
+    end
+
 
   end
 

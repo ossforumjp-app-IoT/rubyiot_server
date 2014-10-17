@@ -1,5 +1,5 @@
 module Echonet
-  Hash = JSON::parse(open("db/echonet-device-objects.json").read)
+  Hash = JSON::parse(open("public/echonet-device-objects.json").read)
 
   module ClassGroup
     def class_group_name
