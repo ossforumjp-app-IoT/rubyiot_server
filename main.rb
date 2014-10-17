@@ -144,13 +144,21 @@ class MainApp < Sinatra::Base
       halt 400, {'Content-Type' => 'text/plain'}, "No data is posted."
     end
 
-    posted_hash = JSONex::parse_ex(posted_json).symbolize_keys
+    posted_hash = JSONex::parse_ex(posted_json)
 
     unless posted_hash
       halt 400, {'Content-Type' => 'text/plain'}, "Posted JSON is invalid."
     end
 
+    sensor = DeviceProperty.new
 
+
+
+
+
+
+    status 201
+    body "OK"
   end
 
   get '/api/sensor', :provides => [:json] do
@@ -161,7 +169,7 @@ class MainApp < Sinatra::Base
     gateway_id = params[:gateway_id]
 
 
-    '{"1":{"name":"ダミーセンサー","property_name":"Dummy value"}}'
+    '{"1":{"name":"ダミーセンサー","property_name":"Dummy value","device_id":"1"}}'
   end
 
   post '/api/controller' do
@@ -172,7 +180,7 @@ class MainApp < Sinatra::Base
     gateway_id = params[:gateway_id]
 
     dummy = '{"2":{"name":"ダミーコントローラー","property_name":"Dummy status",'
-    dummy += '"value_range":{ "ON": "0", "OFF": "1" },"value":"1"}}'
+    dummy += '"value_range":{ "ON": "0", "OFF": "1" },"value":"1","device_id":"1"}}'
     dummy
   end
 
