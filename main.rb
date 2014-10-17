@@ -1,6 +1,7 @@
 require 'sinatra/base'
-require 'sinatra/json'
 require 'active_record'
+require 'json'
+require 'sinatra/json'
 require 'haml'
 require 'digest'
 
@@ -9,7 +10,32 @@ require 'sinatra/reloader'
 require_relative './models'
 
 ActiveRecord::Base.configurations = YAML.load_file('db/database.yml')
-ActiveRecord::Base.establish_connection('development')
+ActiveRecord::Base.establish_connection(:development)
+
+module JSONex
+  include JSON
+
+  def self.parse_ex(source)
+    begin
+      JSON.parse(source)
+    rescue
+      false
+    end
+  end
+end
+
+class Hash
+  def symbolize_keys
+    self.each_with_object({}){ |(k, v), memo|
+      memo[k.to_s.to_sym] = v
+    }
+  end
+  def deep_symbolize_keys
+    self.each_with_object({}){ |(k, v), memo|
+      memo[k.to_s.to_sym] = (v.is_a?(Hash) ? v.deep_symbolize_keys : v)
+    }
+  end
+end
 
 class MainApp < Sinatra::Base
   configure :development do
@@ -55,9 +81,60 @@ class MainApp < Sinatra::Base
   end
 
   post '/api/device', :provides => [:json] do
-    pass unless request.accept? 'application/json'
+    posted_json = request.body.read
 
-    '{"1":{"0xB0":"3"}}'
+    unless posted_json
+      halt 400, {'Content-Type' => 'text/plain'}, "No data is posted."
+    end
+
+    posted_hash = JSONex::parse_ex(posted_json).symbolize_keys
+
+    unless posted_hash
+      halt 400, {'Content-Type' => 'text/plain'}, "Posted JSON is invalid."
+    end
+
+    key_array = [:hardware_uid, :class_group_code, :class_code, :properties]
+
+    key_array.each { |k|
+      unless posted_hash.has_key?(k)
+        halt 400, {'Content-Type' => 'text/plain'}, "'#{k.to_s}' is not found."
+      end
+    }
+
+    # propertiesを変数に代入して、ハッシュから削除
+    properties = posted_hash.delete(:properties)
+
+    device = Device.new(posted_hash)
+
+    unless device.save
+      halt 500, {'Content-Type' => 'text/plain'}, "Failed to save devide."
+    end
+
+    h = {}
+
+    properties.keys.each { |k|
+      s = if properties[k] == "sensor"
+        true
+      else
+        false
+      end
+
+      property = DeviceProperty.new(
+        class_group_code: posted_hash[:class_group_code],
+        class_code: posted_hash[:class_code],
+        property_code: k.to_s,
+        sensor: s
+      )
+
+      unless property.save
+        halt 500, {'Content-Type' => 'text/plain'}, "Failed to save property '#{k.to_s}'."
+      end
+
+      h.store(k.to_s, property.id.to_s)
+    }
+
+    status 201
+    body JSON::generate({device.id.to_s => h})
   end
 
   post '/api/sensor' do

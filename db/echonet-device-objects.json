@@ -22,14 +22,14 @@
       { "property_name": "Gas leak occurrence status",
         "data_type": "unsigned char",
         "data_size": 1,
-        "value_range": { "not-detect": "A", "detect": "B" },
+        "value_range": { "found": "A", "not_found": "B" },
         "get": "mandatory"
       },
       "0xBF":
       { "property_name": "Gas leak occurrence status resetting",
         "data_type": "unsigned char",
         "data_size": 1,
-        "value_range": { "reset": "\u0000" },
+        "value_range": { "Reset": "\u0000" },
         "set": "optional"
       }
     },
