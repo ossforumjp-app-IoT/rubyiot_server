@@ -87,16 +87,22 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
   （2階層目のdevice_idは、serverで管理するdevice_id）
             { "yyy":
               { "name": "ex: キッチンのガス漏れセンサー",
-                "property_name": "Detection threshold level"
-                "device_id": "YYY" },
+                "property_name": "Detection threshold level",
+                "device_id": "YYY",
+                "value": "最新の測定値",
+                "datetime": "最新の測定時刻",
+                "alert": "< 0:無 | 1:有 >" },
 
               ...
 
               "zzz":
               { "name": "ex: リビングの温度計"
                 "data-unit": "degree Celsius",
-                "property_name": "Measured temperature value"
-                "device_id": "ZZZ" },
+                "property_name": "Measured temperature value",
+                "device_id": "ZZZ",
+                "value": "最新の測定値",
+                "datetime": "最新の測定時刻",
+                "alert": "< 0:無 | 1:有 >" },
 
               ...
 

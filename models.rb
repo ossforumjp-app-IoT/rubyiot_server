@@ -1,25 +1,25 @@
 module Echonet
-  Hash = JSON::parse(open("public/echonet-device-objects.json").read)
+  Defs = JSON::parse(open("public/echonet-device-objects.json").read)
 
   module ClassGroup
     def class_group_name
-      Hash[@class_group_code]["class_group_name"]
+      Defs[self.class_group_code]["class_group_name"]
     end
   end
 
   module Class
     def class_name
-      Hash[@class_group_code][@class_code]["class_name"]
+      Defs[self.class_group_code][self.class_code]["class_name"]
     end
   end
 
   module Property
     def property_name
-      Hash[@class_group_code][@class_code][@property_code]["property_name"]
+      Defs[self.class_group_code][self.class_code][self.property_code]["property_name"]
     end
 
-    def definitions
-      Hash[@class_group_code][@class_code][@property_code]
+    def definitions(def_name)
+      Defs[self.class_group_code][self.class_code][self.property_code][def_name]
     end
   end
 end
@@ -65,6 +65,7 @@ class DeviceProperty < ActiveRecord::Base
 end
 
 class SensorData < ActiveRecord::Base
+  self.table_name = 'sensor_datas'
   belongs_to :device_property
 end
 
@@ -83,17 +84,42 @@ end
 class Operation < ActiveRecord::Base
   belongs_to :device_property
 
-  @@queue = []
+  @@queue = {}
 
   def push
-    @@queue.push( { "device_property_id" => @device_property_id, "value" => @value } )
+    if self.device_property_id
+      dpid = self.device_property_id.to_s
+    else
+      return false
+    end
+
+    if self.value
+      v = self.value
+    else
+      return false
+    end
+
+    unless @@queue.has_key?(dpid)
+      @@queue[dpid] = []
+    end
+
+    if self.save
+      @@queue[dpid].push( { id: self.id, value: v } )
+      return true
+    else
+      return false
+    end
   end
 
-  def pop
-    op = @@queue.shift
-    @device_property_id = op["device_property_id"]
-    @value = op["value"]
-    self.save
-    @id
+  def self.pop(device_property_id)
+    if @@queue[device_property_id.to_s].length > 0
+      op = @@queue[device_property_id.to_s].shift
+      obj = self.find(op[:id])
+      obj.status = ""
+      obj.save
+      obj
+    else
+      nil
+    end
   end
 end
