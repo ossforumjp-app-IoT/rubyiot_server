@@ -136,7 +136,7 @@ class MainApp < Sinatra::Base
         v = magnify(obj.id, d.value)
         dt = d.measured_at.strftime("%Y-%m-%d %H:%M:%S")
         a = if SensorAlert.where("device_property_id = ? AND measured_at >= ?",
-          obj.id, dt - 30).exists?
+          obj.id, d.measured_at - 30).exists?
           "1"
         else
           "0"
@@ -162,7 +162,6 @@ class MainApp < Sinatra::Base
     }
 
     JSON::generate(return_hash)
-    #'{"1":{"name":"ダミーセンサー","property_name":"Dummy value","device_id":"1","value":"25","datetime":"2014-10-25 12:00:00","alert":"0"}}'
   end
 
   get '/api/controller', :provides => [:json] do
