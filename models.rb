@@ -3,23 +3,71 @@ module Echonet
 
   module ClassGroup
     def class_group_name
-      Defs[self.class_group_code]["class_group_name"]
+      unless self.class_group_code
+        return nil
+      end
+
+      if Defs[self.class_group_code].class == Hash
+        return Defs[self.class_group_code]["class_group_name"]
+      else
+        return nil
+      end
     end
   end
 
   module Class
     def class_name
+      unless self.class_group_code
+        return nil
+      end
+
+      unless self.class_code
+        return nil
+      end
+
+      unless Defs[self.class_group_code] == Hash
+        return nil
+      end
+
+      unless Defs[self.class_group_code][self.class_code] == Hash
+        return nil
+      end
+
       Defs[self.class_group_code][self.class_code]["class_name"]
     end
   end
 
   module Property
-    def property_name
-      Defs[self.class_group_code][self.class_code][self.property_code]["property_name"]
+    def definitions(def_name)
+      unless self.class_group_code
+        return nil
+      end
+
+      unless self.class_code
+        return nil
+      end
+
+      unless self.property_code
+        return nil
+      end
+
+      unless Defs[self.class_group_code] == Hash
+        return nil
+      end
+
+      unless Defs[self.class_group_code][self.class_code] == Hash
+        return nil
+      end
+
+      unless Defs[self.class_group_code][self.class_code][self.property_code] == Hash
+        return nil
+      end
+
+      Defs[self.class_group_code][self.class_code][self.property_code][def_name]
     end
 
-    def definitions(def_name)
-      Defs[self.class_group_code][self.class_code][self.property_code][def_name]
+    def property_name
+      self.definitions("property_name")
     end
   end
 end
