@@ -25,11 +25,11 @@ module Echonet
         return nil
       end
 
-      unless Defs[self.class_group_code] == Hash
+      unless Defs[self.class_group_code].class == Hash
         return nil
       end
 
-      unless Defs[self.class_group_code][self.class_code] == Hash
+      unless Defs[self.class_group_code][self.class_code].class == Hash
         return nil
       end
 
@@ -51,15 +51,15 @@ module Echonet
         return nil
       end
 
-      unless Defs[self.class_group_code] == Hash
+      unless Defs[self.class_group_code].class == Hash
         return nil
       end
 
-      unless Defs[self.class_group_code][self.class_code] == Hash
+      unless Defs[self.class_group_code][self.class_code].class == Hash
         return nil
       end
 
-      unless Defs[self.class_group_code][self.class_code][self.property_code] == Hash
+      unless Defs[self.class_group_code][self.class_code][self.property_code].class == Hash
         return nil
       end
 
