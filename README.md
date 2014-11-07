@@ -251,6 +251,11 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
     $ bundle exec rake db:migrate RAILS_ENV=production
     $ bundle exec unicorn -c unicorn.rb -E production -D
 
+### ダミーデータ作成
+下記スクリプトのSTART、INTERVAL、SPANを編集して、以下のように実行します。
+
+    $ bundle exec ruby create_dummydata.rb
+
 
 ライセンス
 ----------

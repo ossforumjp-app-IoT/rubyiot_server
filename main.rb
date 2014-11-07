@@ -235,10 +235,10 @@ class MainApp < Sinatra::Base
       "yearly" => { span: (366 * 24 * 3600), interval: (24 * 3600) }
     }
 
-    sensor_id = params[:sensor_id].to_i
+    sid = params[:sensor_id]
     start_time = Time.parse(params[:start])
 
-    m = DeviceProperty.find(sensor_id).definitions("magnification").to_s
+    m = DeviceProperty.find(sid.to_i).definitions("magnification").to_s
     return_hash = {}
 
     case params[:span]
@@ -247,10 +247,12 @@ class MainApp < Sinatra::Base
         halt 400, TEXT_PLAIN, "5-minutely, more than 2 days ago is invalid."
       end
 
-      objs = SensorData.where( {
-        :device_property_id => sensor_id,
-        :measured_at => start_time .. (start_time + 301)
-      } )
+      w = "device_property_id = #{sid}"
+      w += " AND measured_at"
+      w += " BETWEEN #{start_time.strftime("%Y-%m-%d %H:%M:%S")}"
+      w += " AND #{(start_time + 301).strftime("%Y-%m-%d %H:%M:%S")}"
+
+      objs = SensorData.where(w)
 
       objs.each { |obj|
         return_hash[obj.measured_at.strftime("%Y-%m-%d %H:%M:%S")] =
@@ -264,10 +266,12 @@ class MainApp < Sinatra::Base
       t = start_time
 
       while t <= start_time + span_def["hourly"][:span]
-        objs = SensorData.where( {
-          :device_property_id => sensor_id,
-          :measured_at => (t - 1) .. (t + 2)
-        } )
+        w = "device_property_id = #{sid}"
+        w += " AND measured_at"
+        w += " BETWEEN #{(t - 1).strftime("%Y-%m-%d %H:%M:%S")}"
+        w += " AND #{(t + 2).strftime("%Y-%m-%d %H:%M:%S")}"
+
+        objs = SensorData.where(w)
 
         if objs.length > 0
           return_hash[objs[0].measured_at.strftime("%Y-%m-%d %H:%M:%S")] =
@@ -278,10 +282,12 @@ class MainApp < Sinatra::Base
       end
     when "daily"
       if start_time < (Time.now - (2 * 24 * 3600))
-        objs = SensorHourlyData.where( {
-          :device_property_id => sensor_id,
-          :measured_at => start_time .. (start_time + span_def["daily"][:span] + 1)
-        } )
+        w = "device_property_id = #{sid}"
+        w += " AND measured_at"
+        w += " BETWEEN #{start_time.strftime("%Y-%m-%d %H:%M:%S")}"
+        w += " AND #{(start_time + span_def["daily"][:span] + 1).strftime("%Y-%m-%d %H:%M:%S")}"
+
+        objs = SensorHourlyData.where(w)
 
         objs.each { |obj|
           return_hash[obj.measured_at.strftime("%Y-%m-%d %H:%M:%S")] =
@@ -291,10 +297,12 @@ class MainApp < Sinatra::Base
         t = start_time
 
         while t <= start_time + span_def["daily"][:span]
-          objs = SensorData.where( {
-            :device_property_id => sensor_id,
-            :measured_at => (t - 1) .. (t + 10)
-          } )
+          w = "device_property_id = #{sid}"
+          w += " AND measured_at"
+          w += " BETWEEN #{(t - 1).strftime("%Y-%m-%d %H:%M:%S")}"
+          w += " AND #{(t + 10).strftime("%Y-%m-%d %H:%M:%S")}"
+
+          objs = SensorData.where(w)
 
           if objs.length > 0
             return_hash[objs[0].measured_at.strftime("%Y-%m-%d %H:%M:%S")] =
@@ -308,10 +316,12 @@ class MainApp < Sinatra::Base
       t = start_time
 
       while t <= start_time + span_def[params[:span]][:span]
-        objs = SensorHourlyData.where( {
-          :device_property_id => sensor_id,
-          :measured_at => (t - 1800) .. (t + 1800)
-        } )
+        w = "device_property_id = #{sid}"
+        w += " AND measured_at"
+        w += " BETWEEN #{(t - 1800).strftime("%Y-%m-%d %H:%M:%S")}"
+        w += " AND #{(t + 1800).strftime("%Y-%m-%d %H:%M:%S")}"
+
+        objs = SensorHourlyData.where(w)
 
         if objs.length > 0
           return_hash[objs[0].measured_at.strftime("%Y-%m-%d %H:%M:%S")] =
@@ -399,6 +409,62 @@ class MainApp < Sinatra::Base
     end
 
     JSON::generate(h)
+  end
+
+  get '/api/sensor_data_sum', :provides => [:json] do
+    sumarized = []
+
+    s = "measured_at < '#{(Time.now - 49 * 60 * 60).strftime("%Y-%m-%d %H:%M:%S")}'"
+    while SensorData.where(s).exists?
+      oldest = SensorData.where(s)
+      oldest = oldest.group(:device_property_id).minimum(:measured_at)
+
+      oldest.each { |k, v|
+        t = Time.new(v.year, v.mon, v.day, v.hour)
+
+        w = "device_property_id = #{k.to_s}"
+        w += " AND measured_at"
+        w += " BETWEEN '#{t.strftime("%Y-%m-%d %H:%M:%S")}'"
+        w += " AND '#{(t + 3600).strftime("%Y-%m-%d %H:%M:%S")}'"
+        datas = SensorData.where(w)
+
+        unless SensorHourlyData.exists?(measured_at: t)
+          vals = []
+          datas.each { |d|
+            vals << BigDecimal(d.value)
+          }
+          vals.sort!
+
+          if vals.size >= 100
+            min = vals[2]
+            max = vals[-3]
+            avg = vals[2..-3].inject(:+) / vals[2..-3].size
+          else
+            min = vals[0]
+            max = vals[-1]
+            avg = vals.inject(:+) / vals.size
+          end
+
+          shd = SensorHourlyData.new( {
+            device_property_id: k,
+            value: avg.to_i.to_s,
+            min_3rd_value: min.to_i.to_s,
+            max_3rd_value: max.to_i.to_s,
+            measured_at: t
+            } )
+
+          unless shd.save
+            halt 500, TEXT_PLAIN, "Failed to save sensor hourly data."
+          end
+
+          sumarized << {k.to_s => t}
+        end
+
+        datas.destroy_all(w)
+      }
+    end
+
+    JSON::generate(sumarized)
   end
 
   private
@@ -537,11 +603,11 @@ class MainApp < Sinatra::Base
 
   def minify(device_property_id, value)
     m = DeviceProperty.find(device_property_id).definitions("magnification").to_s
-    m ? (BigDecimal(value) / BigDecimal(m)).to_i.to_s : value
+    m != "" ? (BigDecimal(value) / BigDecimal(m)).to_i.to_s : value
   end
 
   def magnify(device_property_id, value)
     m = DeviceProperty.find(device_property_id).definitions("magnification").to_s
-    m ? (BigDecimal(value) * BigDecimal(m)).to_f.to_s : value
+    m != "" ? (BigDecimal(value) * BigDecimal(m)).to_f.to_s : value
   end
 end
