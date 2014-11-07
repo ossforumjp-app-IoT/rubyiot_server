@@ -85,12 +85,13 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
   * GETデータ: 以下のJSON形式のデータ  
   （1階層目のkeyの"yyy"、"zzz"は、serverで管理するsensor_id）
   （2階層目のdevice_idは、serverで管理するdevice_id）
-  
+
             { "yyy":
               { "name": "ex: キッチンのガス漏れセンサー",
                 "property_name": "Detection threshold level",
                 "device_id": "YYY",
                 "value": "最新の測定値",
+                "unit": "測定値の単位",
                 "datetime": "最新の測定時刻",
                 "alert": "< 0:無 | 1:有 >" },
 

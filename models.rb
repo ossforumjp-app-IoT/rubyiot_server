@@ -118,6 +118,7 @@ class SensorData < ActiveRecord::Base
 end
 
 class SensorHourlyData < ActiveRecord::Base
+  self.table_name = 'sensor_hourly_datas'
   belongs_to :device_property
 end
 
@@ -134,7 +135,10 @@ class Operation < ActiveRecord::Base
 
   @@queue = {}
 
+
   def push
+    Operation.init_queue
+
     if self.device_property_id
       dpid = self.device_property_id.to_s
     else
@@ -160,14 +164,42 @@ class Operation < ActiveRecord::Base
   end
 
   def self.pop(device_property_id)
-    if @@queue[device_property_id.to_s].length > 0
-      op = @@queue[device_property_id.to_s].shift
-      obj = self.find(op[:id])
-      obj.status = ""
-      obj.save
-      obj
+    Operation.init_queue
+
+    dpid = device_property_id.to_s
+
+    unless @@queue.has_key?(dpid)
+      @@queue[dpid] = []
+    end
+
+    if @@queue[dpid].length > 0
+      op = @@queue[dpid].shift
+      Operation.find(op[:id])
     else
       nil
+    end
+  end
+
+  private
+  def self.init_queue
+    w = "created_at > '#{(Time.now - 60).strftime("%Y-%m-%d %H:%M:%S")}'"
+    w += " AND (status IS NULL OR status = '')"
+    objs = Operation.where(w)
+
+    unless objs.empty?
+      objs.each { |obj|
+        dpid = obj.device_property_id.to_s
+
+        unless @@queue.has_key?(dpid)
+          @@queue[dpid] = []
+        end
+
+        @@queue[dpid].each { |h|
+          unless h.has_value?(obj.id)
+            @@queue[dpid].push( { id: obj.id, value: obj.value } )
+          end
+        }
+      }
     end
   end
 end

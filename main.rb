@@ -14,6 +14,9 @@ rails_env = ENV["RAILS_ENV"] ? ENV["RAILS_ENV"].to_sym : :development
 
 ActiveRecord::Base.configurations = YAML.load_file('db/database.yml')
 ActiveRecord::Base.establish_connection(rails_env)
+ActiveRecord::Base.default_timezone = :local
+
+Time.zone = "Tokyo"
 
 TEXT_PLAIN = { 'Content-Type' => 'text/plain' }
 
@@ -153,6 +156,7 @@ class MainApp < Sinatra::Base
           "property_name" => obj.property_name,
           "device_id" => obj.device_id.to_s,
           "value" => v,
+          "unit" => obj.definitions("unit"),
           "datetime" => dt,
           "alert" => a
         }
@@ -364,6 +368,7 @@ class MainApp < Sinatra::Base
     h = {}
     dps.each { |dp|
       op = Operation.pop(dp.id)
+
       if op
         h[op.device_property_id.to_s] = {
           "operation_id" => op.id.to_s,
@@ -415,6 +420,10 @@ class MainApp < Sinatra::Base
 
   def operation(posted_hash)
     id = posted_hash.keys[0]
+
+    if DeviceProperty.where( id: id.to_i, sensor: false ).empty?
+      halt 400, TEXT_PLAIN, "Posted controller_id not found."
+    end
 
     obj = Operation.new(
       device_property_id: id.to_i,
