@@ -229,7 +229,10 @@ class MainApp < Sinatra::Base
       end
     }
 
-    objs = DeviceProperty.where(gateway_id: gateway_id, sensor: true)
+    sid = params[:sensor_id]
+    start_time = Time.parse(params[:start])
+
+    objs = DeviceProperty.where(sensor_id: gateway_id, sensor: true)
     if objs.empty?
       halt 400, TEXT_PLAIN, "sensor_id not found."
     end
@@ -242,9 +245,6 @@ class MainApp < Sinatra::Base
       "monthly" => { span: (31 * 24 * 3600), interval: (6 * 3600) },
       "yearly" => { span: (366 * 24 * 3600), interval: (24 * 3600) }
     }
-
-    sid = params[:sensor_id]
-    start_time = Time.parse(params[:start])
 
     m = DeviceProperty.find(sid.to_i).definitions("magnification").to_s
     m = m == "" ? "1" : m
