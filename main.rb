@@ -232,7 +232,7 @@ class MainApp < Sinatra::Base
     sid = params[:sensor_id]
     start_time = Time.parse(params[:start])
 
-    objs = DeviceProperty.where(device_property_id: sid, sensor: true)
+    objs = DeviceProperty.where(id: sid, sensor: true)
     if objs.empty?
       halt 400, TEXT_PLAIN, "sensor_id not found."
     end
