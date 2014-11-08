@@ -1,4 +1,5 @@
 require 'sinatra/base'
+require 'sinatra/contrib'
 require 'active_record'
 require 'json'
 require 'sinatra/json'
@@ -239,6 +240,7 @@ class MainApp < Sinatra::Base
     start_time = Time.parse(params[:start])
 
     m = DeviceProperty.find(sid.to_i).definitions("magnification").to_s
+    m = m == "" ? "1" : m
     return_hash = {}
 
     case params[:span]
@@ -249,8 +251,8 @@ class MainApp < Sinatra::Base
 
       w = "device_property_id = #{sid}"
       w += " AND measured_at"
-      w += " BETWEEN #{start_time.strftime("%Y-%m-%d %H:%M:%S")}"
-      w += " AND #{(start_time + 301).strftime("%Y-%m-%d %H:%M:%S")}"
+      w += " BETWEEN '#{start_time.strftime("%Y-%m-%d %H:%M:%S")}'"
+      w += " AND '#{(start_time + 301).strftime("%Y-%m-%d %H:%M:%S")}'"
 
       objs = SensorData.where(w)
 
@@ -268,8 +270,8 @@ class MainApp < Sinatra::Base
       while t <= start_time + span_def["hourly"][:span]
         w = "device_property_id = #{sid}"
         w += " AND measured_at"
-        w += " BETWEEN #{(t - 1).strftime("%Y-%m-%d %H:%M:%S")}"
-        w += " AND #{(t + 2).strftime("%Y-%m-%d %H:%M:%S")}"
+        w += " BETWEEN '#{(t - 1).strftime("%Y-%m-%d %H:%M:%S")}'"
+        w += " AND '#{(t + 2).strftime("%Y-%m-%d %H:%M:%S")}'"
 
         objs = SensorData.where(w)
 
@@ -284,8 +286,8 @@ class MainApp < Sinatra::Base
       if start_time < (Time.now - (2 * 24 * 3600))
         w = "device_property_id = #{sid}"
         w += " AND measured_at"
-        w += " BETWEEN #{start_time.strftime("%Y-%m-%d %H:%M:%S")}"
-        w += " AND #{(start_time + span_def["daily"][:span] + 1).strftime("%Y-%m-%d %H:%M:%S")}"
+        w += " BETWEEN '#{start_time.strftime("%Y-%m-%d %H:%M:%S")}'"
+        w += " AND '#{(start_time + span_def["daily"][:span] + 1).strftime("%Y-%m-%d %H:%M:%S")}'"
 
         objs = SensorHourlyData.where(w)
 
@@ -299,8 +301,8 @@ class MainApp < Sinatra::Base
         while t <= start_time + span_def["daily"][:span]
           w = "device_property_id = #{sid}"
           w += " AND measured_at"
-          w += " BETWEEN #{(t - 1).strftime("%Y-%m-%d %H:%M:%S")}"
-          w += " AND #{(t + 10).strftime("%Y-%m-%d %H:%M:%S")}"
+          w += " BETWEEN '#{(t - 1).strftime("%Y-%m-%d %H:%M:%S")}'"
+          w += " AND '#{(t + 10).strftime("%Y-%m-%d %H:%M:%S")}'"
 
           objs = SensorData.where(w)
 
@@ -318,8 +320,8 @@ class MainApp < Sinatra::Base
       while t <= start_time + span_def[params[:span]][:span]
         w = "device_property_id = #{sid}"
         w += " AND measured_at"
-        w += " BETWEEN #{(t - 1800).strftime("%Y-%m-%d %H:%M:%S")}"
-        w += " AND #{(t + 1800).strftime("%Y-%m-%d %H:%M:%S")}"
+        w += " BETWEEN '#{(t - 1800).strftime("%Y-%m-%d %H:%M:%S")}'"
+        w += " AND '#{(t + 1800).strftime("%Y-%m-%d %H:%M:%S")}'"
 
         objs = SensorHourlyData.where(w)
 
@@ -411,60 +413,58 @@ class MainApp < Sinatra::Base
     JSON::generate(h)
   end
 
-  get '/api/sensor_data_sum', :provides => [:json] do
-    sumarized = []
+  get '/api/sensor_data_sum', :provides => [:text] do
+    stream do |out|
+      s = "measured_at < '#{(Time.now - 49 * 60 * 60).strftime("%Y-%m-%d %H:%M:%S")}'"
+      while SensorData.where(s).exists?
+        oldest = SensorData.where(s)
+        oldest = oldest.group(:device_property_id).minimum(:measured_at)
 
-    s = "measured_at < '#{(Time.now - 49 * 60 * 60).strftime("%Y-%m-%d %H:%M:%S")}'"
-    while SensorData.where(s).exists?
-      oldest = SensorData.where(s)
-      oldest = oldest.group(:device_property_id).minimum(:measured_at)
+        oldest.each { |k, v|
+          t = Time.new(v.year, v.mon, v.day, v.hour)
 
-      oldest.each { |k, v|
-        t = Time.new(v.year, v.mon, v.day, v.hour)
+          w = "device_property_id = #{k.to_s}"
+          w += " AND measured_at"
+          w += " BETWEEN '#{t.strftime("%Y-%m-%d %H:%M:%S")}'"
+          w += " AND '#{(t + 3600).strftime("%Y-%m-%d %H:%M:%S")}'"
+          datas = SensorData.where(w)
 
-        w = "device_property_id = #{k.to_s}"
-        w += " AND measured_at"
-        w += " BETWEEN '#{t.strftime("%Y-%m-%d %H:%M:%S")}'"
-        w += " AND '#{(t + 3600).strftime("%Y-%m-%d %H:%M:%S")}'"
-        datas = SensorData.where(w)
+          unless SensorHourlyData.exists?(measured_at: t)
+            vals = []
+            datas.each { |d|
+              vals << BigDecimal(d.value)
+            }
+            vals.sort!
 
-        unless SensorHourlyData.exists?(measured_at: t)
-          vals = []
-          datas.each { |d|
-            vals << BigDecimal(d.value)
-          }
-          vals.sort!
+            if vals.size >= 100
+              min = vals[2]
+              max = vals[-3]
+              avg = vals[2..-3].inject(:+) / vals[2..-3].size
+            else
+              min = vals[0]
+              max = vals[-1]
+              avg = vals.inject(:+) / vals.size
+            end
 
-          if vals.size >= 100
-            min = vals[2]
-            max = vals[-3]
-            avg = vals[2..-3].inject(:+) / vals[2..-3].size
-          else
-            min = vals[0]
-            max = vals[-1]
-            avg = vals.inject(:+) / vals.size
+            shd = SensorHourlyData.new( {
+              device_property_id: k,
+              value: avg.to_i.to_s,
+              min_3rd_value: min.to_i.to_s,
+              max_3rd_value: max.to_i.to_s,
+              measured_at: t
+              } )
+
+            unless shd.save
+              halt 500, TEXT_PLAIN, "Failed to save sensor hourly data."
+            end
+
+            out << "#{k.to_s} | #{t.strftime("%Y-%m-%d %H:%M:%S")}\n"
           end
 
-          shd = SensorHourlyData.new( {
-            device_property_id: k,
-            value: avg.to_i.to_s,
-            min_3rd_value: min.to_i.to_s,
-            max_3rd_value: max.to_i.to_s,
-            measured_at: t
-            } )
-
-          unless shd.save
-            halt 500, TEXT_PLAIN, "Failed to save sensor hourly data."
-          end
-
-          sumarized << {k.to_s => t}
-        end
-
-        datas.destroy_all(w)
-      }
+          datas.destroy_all(w)
+        }
+      end
     end
-
-    JSON::generate(sumarized)
   end
 
   private

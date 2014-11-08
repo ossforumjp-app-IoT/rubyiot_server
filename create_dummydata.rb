@@ -2,11 +2,15 @@ require 'active_record'
 require 'json'
 require_relative './models'
 
+SensorID = 1
 START = Time.now - 365 * 24 * 60 * 60
 INTERVAL = 3
 SPAN = 5 * 24 * 60 * 60 / INTERVAL
 
-ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: "db/development.db")
+rails_env = ENV["RAILS_ENV"] ? ENV["RAILS_ENV"].to_sym : :development
+
+ActiveRecord::Base.configurations = YAML.load_file('db/database.yml')
+ActiveRecord::Base.establish_connection(rails_env)
 ActiveRecord::Base.default_timezone = :local
 
 Time.zone = "Tokyo"
@@ -59,7 +63,7 @@ v = case t.mon
   end
 
   SensorData.create({
-    device_property_id: 2,
+    device_property_id: SensorID,
     value: (v * 10).round.to_s,
     measured_at: t
   })
