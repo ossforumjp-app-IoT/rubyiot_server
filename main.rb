@@ -1,6 +1,8 @@
 require 'sinatra/base'
 require 'sinatra/contrib'
 require 'active_record'
+require 'sqlite3'
+require 'mysql2'
 require 'json'
 require 'sinatra/json'
 require 'haml'
@@ -226,6 +228,11 @@ class MainApp < Sinatra::Base
         halt 400, TEXT_PLAIN, "Parameter #{p.to_s} is needed."
       end
     }
+
+    objs = DeviceProperty.where(gateway_id: gateway_id, sensor: true)
+    if objs.empty?
+      halt 400, TEXT_PLAIN, "sensor_id not found."
+    end
 
     span_def = {
       "5-minutely" => { span: 300, interval: 3 },

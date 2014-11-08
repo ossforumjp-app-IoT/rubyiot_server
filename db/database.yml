@@ -7,5 +7,9 @@ test:
   database: db/test.db
 
 production:
-  adapter: sqlite3
-  database: db/production.db
+  adapter: mysql2
+  encoding: utf8
+  database: rubyiot_server
+  username: rubyiot
+  password: <%= ENV['RUBYIOT_SERVER_DATABASE_PASSWORD'] %>
+  host: 127.0.0.1
