@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20141010083835) do
+ActiveRecord::Schema.define(version: 20141108145917) do
 
   create_table "device_properties", force: true do |t|
     t.integer  "gateway_id"
@@ -72,6 +72,8 @@ ActiveRecord::Schema.define(version: 20141010083835) do
     t.datetime "measured_at"
   end
 
+  add_index "sensor_datas", ["measured_at", "device_property_id"], name: "index_sensor_datas_on_measured_at"
+
   create_table "sensor_hourly_datas", force: true do |t|
     t.integer  "device_property_id"
     t.string   "value"
@@ -79,6 +81,8 @@ ActiveRecord::Schema.define(version: 20141010083835) do
     t.string   "max_3rd_value"
     t.datetime "measured_at"
   end
+
+  add_index "sensor_hourly_datas", ["measured_at", "device_property_id"], name: "index_sensor_hourly_datas_on_mesured_at"
 
   create_table "user_gateway_relations", force: true do |t|
     t.integer  "user_id"
