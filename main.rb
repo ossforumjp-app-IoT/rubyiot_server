@@ -441,7 +441,7 @@ class MainApp < Sinatra::Base
       if oldest_ts < (Time.now - 6 * 24 * 60 * 60)
         s = "measured_at < "
         s += "'#{(oldest_ts + 3 * 24 * 60 * 60).strftime("%Y-%m-%d %H:%M:%S")}'"
-      }
+      end
 
       while SensorData.where(s).exists?
         oldest = SensorData.where(s)
