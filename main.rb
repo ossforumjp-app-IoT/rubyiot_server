@@ -230,6 +230,11 @@ class MainApp < Sinatra::Base
     }
 
     sid = params[:sensor_id]
+
+    unless DeviceProperty.exists?( id: sid, sensor: true )
+      halt 400, TEXT_PLAIN, "Requested sensor_id not found"
+    end
+
     start_time = Time.parse(params[:start])
 
     objs = DeviceProperty.where(id: sid, sensor: true)
@@ -347,28 +352,33 @@ class MainApp < Sinatra::Base
   end
 
   get '/api/sensor_alert', :provides => [:json] do
-      unless params[:sensor_id]
-        halt 400, TEXT_PLAIN, "Parameter sensor_id is needed."
-      end
+    unless params[:sensor_id]
+      halt 400, TEXT_PLAIN, "Parameter sensor_id is needed."
+    end
 
     sensor_id = params[:sensor_id].to_i
+
+    unless DeviceProperty.exists?( id: sensor_id, sensor: true )
+      halt 400, TEXT_PLAIN, "Requested sensor_id not found"
+    end
+
     datetime = params[:datetime] ? Time.parse(params[:datetime]) : Time.now
 
-    objs = SensorAlert.where( {
-      :device_property_id => sensor_id,
-      :measured_at => (datetime - 60) .. (datetime + 1)
-    } )
+    w = "device_property_id = #{params[:sensor_id]}"
+    w += " AND measured_at"
+    w += " BETWEEN '#{(datetime - 60).strftime("%Y-%m-%d %H:%M:%S")}'"
+    w += " AND '#{(datetime + 1).strftime("%Y-%m-%d %H:%M:%S")}'"
+    objs = SensorAlert.where(w).order("measured_at DESC")
 
-    if objs.length > 0
-      objs.order("measured_at DESC")
+    if objs.empty?
+      h = {}
+    else
       h = {
         "alert" => "1",
         "value" => magnify(sensor_id, objs[0].value),
         "min" => magnify(sensor_id, objs[0].monitor_min_value),
         "max" => magnify(sensor_id, objs[0].monitor_max_value)
       }
-    else
-      h = {}
     end
 
     JSON::generate(h)
@@ -478,6 +488,11 @@ class MainApp < Sinatra::Base
   private
   def sensor_data(posted_hash)
     id = posted_hash.keys[0]
+
+    unless DeviceProperty.exists?(id: id.to_i, sensor: true)
+      halt 400, TEXT_PLAIN, "Posted sensor_id not found."
+    end
+
     val = minify(id.to_i, posted_hash[id])
     ts = Time.now
 
@@ -494,19 +509,20 @@ class MainApp < Sinatra::Base
     mons = MonitorRange.where( device_property_id: id.to_i )
 
     unless mons.empty?
-      min = minify(id.to_i, mons[0].min_value)
-      max = minify(id.to_i, mons[0].max_value)
+      min = BigDecimal(mons[0].min_value)
+      max = BigDecimal(mons[0].max_value)
+      v = BigDecimal(val)
 
-      if val <= min || val >= max
+      if v <= min || v >= max
         alrt = SensorAlert.new(
           device_property_id: id.to_i,
           value: val,
-          monitor_min_value: min,
-          monitor_max_value: max,
+          monitor_min_value: mons[0].min_value,
+          monitor_max_value: mons[0].max_value,
           measured_at: ts
         )
 
-        unless obj.save
+        unless alrt.save
           halt 500, TEXT_PLAIN, "Failed to save sensor alert."
         end
       end
@@ -518,7 +534,7 @@ class MainApp < Sinatra::Base
   def operation(posted_hash)
     id = posted_hash.keys[0]
 
-    if DeviceProperty.where( id: id.to_i, sensor: false ).empty?
+    unless DeviceProperty.exists?( id: id.to_i, sensor: false )
       halt 400, TEXT_PLAIN, "Posted controller_id not found."
     end
 
