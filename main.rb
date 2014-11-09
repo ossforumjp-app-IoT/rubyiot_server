@@ -418,14 +418,15 @@ class MainApp < Sinatra::Base
 
     operation_id = params[:operation_id].to_i
 
-    op = Operation.find(operation_id)
-    if op
-      h = {
+    h = if Operation.exists?(id: operation_id)
+      op = Operation.find(operation_id)
+
+      {
         "value" => op.value,
         "status" => op.status == nil ? "" : op.status
       }
     else
-      h = {}
+      {}
     end
 
     JSON::generate(h)
@@ -433,7 +434,17 @@ class MainApp < Sinatra::Base
 
   get '/api/sensor_data_sum', :provides => [:text] do
     stream do |out|
-      s = "measured_at < '#{(Time.now - 49 * 60 * 60).strftime("%Y-%m-%d %H:%M:%S")}'"
+      (12..1).each { |month|
+        s = "measured_at < "
+        s += "'#{(Time.now - month * 30 * 24 * 60 * 60).strftime("%Y-%m-%d %H:%M:%S")}'"
+        if SensorData.where(s).exists?
+          break
+        else
+          s = "measured_at < "
+          s += "'#{(Time.now - 49 * 60 * 60).strftime("%Y-%m-%d %H:%M:%S")}'"
+        end
+      }
+
       while SensorData.where(s).exists?
         oldest = SensorData.where(s)
         oldest = oldest.group(:device_property_id).minimum(:measured_at)
