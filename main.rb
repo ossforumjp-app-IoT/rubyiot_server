@@ -436,13 +436,11 @@ class MainApp < Sinatra::Base
     stream do |out|
       s = "measured_at < "
       s += "'#{(Time.now - 49 * 60 * 60).strftime("%Y-%m-%d %H:%M:%S")}'"
-      (12..1).each { |month|
-        s1 = "measured_at < "
-        s1 += "'#{(Time.now - month * 30 * 24 * 60 * 60).strftime("%Y-%m-%d %H:%M:%S")}'"
-        if SensorData.where(s1).exists?
-          s = s1
-          break
-        end
+
+      oldest_ts = SensorData.minimum(:measured_at)
+      if oldest_ts < (Time.now - 6 * 24 * 60 * 60)
+        s = "measured_at < "
+        s += "'#{(oldest_ts + 3 * 24 * 60 * 60).strftime("%Y-%m-%d %H:%M:%S")}'"
       }
 
       while SensorData.where(s).exists?
