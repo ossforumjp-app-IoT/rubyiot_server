@@ -347,14 +347,12 @@ class MainApp < Sinatra::Base
   end
 
   get '/api/sensor_alert', :provides => [:json] do
-    [:sensor_id, :datetime].each { |p|
-      unless params[p]
-        halt 400, TEXT_PLAIN, "Parameter #{p.to_s} is needed."
+      unless params[:sensor_id]
+        halt 400, TEXT_PLAIN, "Parameter sensor_id is needed."
       end
-    }
 
     sensor_id = params[:sensor_id].to_i
-    datetime = params[:datetime] ? params[:datetime] : Time.now
+    datetime = params[:datetime] ? Time.parse(params[:datetime]) : Time.now
 
     objs = SensorAlert.where( {
       :device_property_id => sensor_id,
