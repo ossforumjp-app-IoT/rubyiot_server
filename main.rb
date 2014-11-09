@@ -434,14 +434,14 @@ class MainApp < Sinatra::Base
 
   get '/api/sensor_data_sum', :provides => [:text] do
     stream do |out|
+      s = "measured_at < "
+      s += "'#{(Time.now - 49 * 60 * 60).strftime("%Y-%m-%d %H:%M:%S")}'"
       (12..1).each { |month|
-        s = "measured_at < "
-        s += "'#{(Time.now - month * 30 * 24 * 60 * 60).strftime("%Y-%m-%d %H:%M:%S")}'"
-        if SensorData.where(s).exists?
+        s1 = "measured_at < "
+        s1 += "'#{(Time.now - month * 30 * 24 * 60 * 60).strftime("%Y-%m-%d %H:%M:%S")}'"
+        if SensorData.where(s1).exists?
+          s = s1
           break
-        else
-          s = "measured_at < "
-          s += "'#{(Time.now - 49 * 60 * 60).strftime("%Y-%m-%d %H:%M:%S")}'"
         end
       }
 
