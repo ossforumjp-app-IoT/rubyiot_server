@@ -1,6 +1,6 @@
 @dir = Dir::pwd
 
-worker_processes 2
+worker_processes 3
 working_directory @dir
 
 listen 3131

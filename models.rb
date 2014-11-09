@@ -137,8 +137,6 @@ class Operation < ActiveRecord::Base
 
 
   def push
-    Operation.init_queue
-
     if self.device_property_id
       dpid = self.device_property_id.to_s
     else
@@ -194,11 +192,9 @@ class Operation < ActiveRecord::Base
           @@queue[dpid] = []
         end
 
-        @@queue[dpid].each { |h|
-          unless h.has_value?(obj.id)
-            @@queue[dpid].push( { id: obj.id, value: obj.value } )
-          end
-        }
+        if @@queue[dpid].empty?
+          @@queue[dpid].push( { id: obj.id, value: obj.value } )
+        end
       }
     end
   end

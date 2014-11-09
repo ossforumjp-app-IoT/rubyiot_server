@@ -385,17 +385,20 @@ class MainApp < Sinatra::Base
     dps = DeviceProperty.where(gateway_id: gateway_id, sensor: false).select(:id)
 
     h = {}
-    dps.each { |dp|
-      op = Operation.pop(dp.id)
 
-      if op
-        h[op.device_property_id.to_s] = {
-          "operation_id" => op.id.to_s,
-          "value" => op.value
-        }
-        break
-      end
-    }
+    unless dps.empty?
+      dps.each { |dp|
+        op = Operation.pop(dp.id)
+
+        if op
+          h[op.device_property_id.to_s] = {
+            "operation_id" => op.id.to_s,
+            "value" => op.value
+          }
+          break
+        end
+      }
+    end
 
     JSON::generate(h)
   end
@@ -477,15 +480,38 @@ class MainApp < Sinatra::Base
   private
   def sensor_data(posted_hash)
     id = posted_hash.keys[0]
+    val = minify(id.to_i, posted_hash[id])
+    ts = Time.now
 
     obj = SensorData.new(
       device_property_id: id.to_i,
-      value: minify(id.to_i, posted_hash[id]),
-      measured_at: Time.now
+      value: val,
+      measured_at: ts
     )
 
     unless obj.save
       halt 500, TEXT_PLAIN, "Failed to save sensor data."
+    end
+
+    mons = MonitorRange.where( device_property_id: id.to_i )
+
+    unless mons.empty?
+      min = minify(id.to_i, mons[0].min_value)
+      max = minify(id.to_i, mons[0].max_value)
+
+      if val <= min || val >= max
+        alrt = SensorAlert.new(
+          device_property_id: id.to_i,
+          value: val,
+          monitor_min_value: min,
+          monitor_max_value: max,
+          measured_at: ts
+        )
+
+        unless obj.save
+          halt 500, TEXT_PLAIN, "Failed to save sensor alert."
+        end
+      end
     end
 
     "OK"

@@ -238,7 +238,16 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
 ### 動作環境
 最低限、以下のソフトウェアがインストールされている必要があります。
 * Ruby 2.1.3
-* SQLite 3
+* SQLite 3（開発環境）
+* MySQL 5.5（本番環境）
+
+### データベースの用意
+本番環境では、MySQLのデータベースを以下のように用意します。
+なお、ここではlocalhostにデータベースを用意していますが、異なるホストに用意する場合は、
+適宜内容を変更してください。
+
+    mysql> CREATE DATABASE rubyiot_server DEFAULT CHARACTER SET 'utf8';
+    mysql> GRANT ALL PRIVILEGES ON rubyiot_server.* TO 'rubyiot'@'localhost' IDENTIFIED BY 'secret'
 
 ### デプロイ
 本番環境の場合、アプリケーションを導入するディレクトリで、以下のようにコマンドを実行します。

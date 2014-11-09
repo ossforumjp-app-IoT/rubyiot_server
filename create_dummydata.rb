@@ -18,11 +18,11 @@ Time.zone = "Tokyo"
 r = Random.new(Random.new_seed)
 t = START
 v = case t.mon
-  when 12, 1, 2; 18
-  when 3, 4, 10, 11; 21
-  when 5, 6, 9; 24
-  when 7, 8; 27
-  end
+when 12, 1, 2; 16
+when 3, 4, 10, 11; 18
+when 5, 6, 9; 20
+when 7, 8; 24
+end
 
 (0..SPAN).each {
   adj = case t.hour
@@ -50,13 +50,13 @@ v = case t.mon
     end
   when 5, 6, 9
     if v > 27
-      v += 0.1
+      v -= 0.1
     elsif v < 20
       v += 0.1
     end
   when 7, 8
     if v > 33
-      v += 0.1
+      v -= 0.1
     elsif v < 25
       v += 0.1
     end
