@@ -355,7 +355,7 @@ class MainApp < Sinatra::Base
               vals.inject(:+) / vals.size
             end
 
-            return_hash[obj.measured_at.strftime("%Y-%m-%d %H:%M:%S")] =
+            return_hash[obj.at] =
               m ? (BigDecimal(v) * BigDecimal(m)).to_f.to_s : v
           }
         end
@@ -444,7 +444,7 @@ class MainApp < Sinatra::Base
               vals.inject(:+) / vals.size
             end
 
-            return_hash[obj.measured_at.strftime("%Y-%m-%d %H:%M:%S")] =
+            return_hash[obj.at] =
               m ? (BigDecimal(v) * BigDecimal(m)).to_f.to_s : v
           end
 
