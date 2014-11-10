@@ -354,6 +354,7 @@ class MainApp < Sinatra::Base
             else
               vals.inject(:+) / vals.size
             end
+            v = v.round
 
             return_hash[obj.at] =
               m ? (BigDecimal(v) * BigDecimal(m)).to_f.to_s : v
@@ -443,6 +444,7 @@ class MainApp < Sinatra::Base
             else
               vals.inject(:+) / vals.size
             end
+            v = v.round
 
             return_hash[obj.at] =
               m ? (BigDecimal(v) * BigDecimal(m)).to_f.to_s : v
@@ -741,6 +743,11 @@ class MainApp < Sinatra::Base
 
   def monitor(posted_hash)
     id = posted_hash.keys[0]
+
+    unless DeviceProperty.exists?( id: id.to_i, sensor: true )
+      halt 400, TEXT_PLAIN, "Posted sensor_id not found."
+    end
+
     attributes = {
       min_value: minify(id.to_i, posted_hash[id]["min"]),
       max_value: minify(id.to_i, posted_hash[id]["max"])
@@ -750,11 +757,11 @@ class MainApp < Sinatra::Base
     # 見つかったら更新、無ければ追加
     objs = MonitorRange.where(device_property_id: id.to_i)
 
-    if objs.length > 0
+    if objs.empty?
+      obj = MonitorRange.new({ device_property_id: id.to_i }.merge(attributes))
+    else
       obj = objs[0]
       obj.update_attributes(attributes)
-    else
-      obj = MonitorRange.new({ device_property_id: id.to_i }.merge(attributes))
     end
 
     unless obj.save

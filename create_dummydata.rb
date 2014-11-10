@@ -3,7 +3,7 @@ require 'json'
 require_relative './models'
 
 SensorID = 1
-START = Time.now - 365 * 24 * 60 * 60
+START = Time.now - 5 * 24 * 60 * 60
 INTERVAL = 3
 SPAN = 5 * 24 * 60 * 60 / INTERVAL
 
@@ -17,11 +17,18 @@ Time.zone = "Tokyo"
 
 r = Random.new(Random.new_seed)
 t = START
-v = case t.mon
-when 12, 1, 2; 16
-when 3, 4, 10, 11; 18
-when 5, 6, 9; 20
-when 7, 8; 24
+
+newest_sd = SensorData.where(device_property_id: SensorID).order(:measured_at).last
+
+v = if newest_sd == nil
+  case t.mon
+  when 12, 1, 2; 16
+  when 3, 4, 10, 11; 18
+  when 5, 6, 9; 20
+  when 7, 8; 24
+  end
+else
+  newest_sd.value.to_f * 0.1
 end
 
 (0..SPAN).each {
@@ -62,9 +69,30 @@ end
     end
   end
 
-  SensorData.create({
+  SensorData.create(
     device_property_id: SensorID,
     value: (v * 10).round.to_s,
     measured_at: t
-  })
+  )
+
+  w = "device_property_id = #{SensorID.to_s}"
+  w += " AND updated_at < #{t.strftime("%Y-%m-%d %H:%M:%S")}"
+
+  if MonitorRange.exists?(w)
+    mons = MonitorRange.where(w)
+
+    min = BigDecimal(mons[0].min_value)
+    max = BigDecimal(mons[0].max_value)
+    val = BigDecimal(v * 10)
+
+    if val <= min || val >= max
+      alrt = SensorAlert.create(
+        device_property_id: id.to_i,
+        value: val.round.to_s,
+        monitor_min_value: mons[0].min_value,
+        monitor_max_value: mons[0].max_value,
+        measured_at: t
+      )
+    end
+  end
 }
