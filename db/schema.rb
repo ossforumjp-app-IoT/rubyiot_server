@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20141108145917) do
+ActiveRecord::Schema.define(version: 20141111083446) do
 
   create_table "device_properties", force: true do |t|
     t.integer  "gateway_id"
@@ -23,6 +23,7 @@ ActiveRecord::Schema.define(version: 20141108145917) do
     t.string   "property_code",    limit: 4
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.datetime "deleted_at"
   end
 
   create_table "devices", force: true do |t|

@@ -2,7 +2,7 @@ require 'active_record'
 require 'json'
 require_relative './models'
 
-SensorID = 1
+SensorID = 9
 START = Time.now - 5 * 24 * 60 * 60
 INTERVAL = 3
 SPAN = 5 * 24 * 60 * 60 / INTERVAL

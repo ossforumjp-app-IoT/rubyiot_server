@@ -108,6 +108,8 @@ class MainApp < Sinatra::Base
     return_value = case params[:type]
     when "sensor_data"
       sensor_data(posted_hash)
+    when "sensor_alert"
+      sensor_alert(posted_hash)
     when "operation"
       operation(posted_hash)
     when "operation_status"
@@ -331,7 +333,7 @@ class MainApp < Sinatra::Base
           objs = SensorData.where(w).select(date_format).uniq
 
           objs.each { |obj|
-            if obj.at == nil
+            if obj.at == nil || t > (start_time + span_def["daily"][:span])
               break
             end
 
@@ -624,26 +626,58 @@ class MainApp < Sinatra::Base
       halt 500, TEXT_PLAIN, "Failed to save sensor data."
     end
 
-    mons = MonitorRange.where( device_property_id: id.to_i )
+    # alertの記録を別のAPIの変更
+    #mons = MonitorRange.where( device_property_id: id.to_i )
+    #
+    #unless mons.empty?
+    #  min = BigDecimal(mons[0].min_value)
+    #  max = BigDecimal(mons[0].max_value)
+    #  v = BigDecimal(val)
+    #
+    #  if v <= min || v >= max
+    #    alrt = SensorAlert.new(
+    #      device_property_id: id.to_i,
+    #      value: val,
+    #      monitor_min_value: mons[0].min_value,
+    #      monitor_max_value: mons[0].max_value,
+    #      measured_at: ts
+    #    )
+    #
+    #    unless alrt.save
+    #      halt 500, TEXT_PLAIN, "Failed to save sensor alert."
+    #    end
+    #  end
+    #end
 
-    unless mons.empty?
-      min = BigDecimal(mons[0].min_value)
-      max = BigDecimal(mons[0].max_value)
-      v = BigDecimal(val)
+    "OK"
+  end
 
-      if v <= min || v >= max
-        alrt = SensorAlert.new(
-          device_property_id: id.to_i,
-          value: val,
-          monitor_min_value: mons[0].min_value,
-          monitor_max_value: mons[0].max_value,
-          measured_at: ts
-        )
+  def sensor_alert(posted_hash)
+    id = posted_hash.keys[0]
 
-        unless alrt.save
-          halt 500, TEXT_PLAIN, "Failed to save sensor alert."
-        end
+    unless DeviceProperty.exists?(id: id.to_i, sensor: true)
+      halt 400, TEXT_PLAIN, "Posted sensor_id not found."
+    end
+
+    vals = []
+    [ "value", "min", "max" ].each { |k|
+      if posted_hash[id][k] == nil
+        halt 400, TEXT_PLAIN, "Posted #{k} not found."
+      else
+        vals << minify(id.to_i, posted_hash[id][k])
       end
+    }
+
+    alrt = SensorAlert.new(
+      device_property_id: id.to_i,
+      value: vals[0],
+      monitor_min_value: vals[1],
+      monitor_max_value: vals[2],
+      measured_at: Time.now
+    )
+
+    unless alrt.save
+      halt 500, TEXT_PLAIN, "Failed to save sensor alert."
     end
 
     "OK"
@@ -692,7 +726,7 @@ class MainApp < Sinatra::Base
     }
 
     # propertiesを変数に代入して、ハッシュから削除
-    properties = posted_hash.delete(:properties)
+    pties = posted_hash.delete(:properties)
 
     # gateway_idは暫定
     gateway_id = 1
@@ -708,21 +742,40 @@ class MainApp < Sinatra::Base
 
     h = {}
 
-    properties.keys.each { |k|
-      property = DeviceProperty.new(
-        gateway_id: gateway_id,
+    pties.keys.each { |k|
+      properties = DeviceProperty.where(
         device_id: device.id,
         class_group_code: posted_hash[:class_group_code],
         class_code: posted_hash[:class_code],
-        property_code: k.to_s,
-        sensor: properties[k] == "sensor"
+        property_code: k.to_s
       )
+
+      if properties.empty?
+        property = DeviceProperty.new(
+          gateway_id: gateway_id,
+          device_id: device.id,
+          class_group_code: posted_hash[:class_group_code],
+          class_code: posted_hash[:class_code],
+          property_code: k.to_s,
+          sensor: pties[k] == "sensor"
+        )
+      else
+        property = properties[0]
+        property.lrestore
+      end
 
       unless property.save
         halt 500, TEXT_PLAIN, "Failed to save property '#{k.to_s}'."
       end
 
       h.store(k.to_s, property.id.to_s)
+    }
+
+    objs = DeviceProperty.where(device_id: device.id)
+    objs.where.not(property_code: h.keys)
+    objs.each { |obj|
+      obj.ldelete
+      obj.save
     }
 
     JSON::generate({device.id.to_s => h})

@@ -110,6 +110,22 @@ class DeviceProperty < ActiveRecord::Base
   has_many :sensor_alerts
   has_many :monitor_ranges
   has_many :operations
+
+  def ldelete
+    self.deleted_at = Time.now
+  end
+
+  def lrestore
+    self.deleted_at = nil
+  end
+
+  def self.lwhere(w)
+    DeviceProperty.where(deleted_at: nil).where(w)
+  end
+
+  def self.lexists?(w)
+    DeviceProperty.where(deleted_at: nil).exists?(w)
+  end
 end
 
 class SensorData < ActiveRecord::Base
