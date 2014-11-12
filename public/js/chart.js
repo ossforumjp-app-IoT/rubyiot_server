@@ -44,28 +44,18 @@ function draw(sensorid, start, span) {
     for(var key in contents) {
       switch (span) {
         case "5-minutely":
+          cats.push(key.slice(-8));
+          break;
         case "hourly":
         case "daily":
-          if ((i % 5) == 0) {
-            cats.push(key.slice(-8));
-          }else{
-            cats.push("");
-          }
+          cats.push(key.substr(11, 5));
           break;
         case "weekly":
-          if ((i % 4) == 0) {
-            cats.push(key.substr(8, 8));
-          }else{
-            cats.push("");
-          }
+          cats.push(key.substr(8, 8));
           break;
         case "monthly":
         case "yearly":
-          if ((i % 6) == 0) {
-            cats.push(key.substr(0, 10));
-          }else{
-            cats.push("");
-          }
+          cats.push(key.substr(5, 5).replace("-", "/"));
           break;
       }
       i++;
