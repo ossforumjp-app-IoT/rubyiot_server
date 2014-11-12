@@ -63,6 +63,10 @@ class MainApp < Sinatra::Base
     "hello world!"
   end
 
+  get '/chart' do
+    haml :chart
+  end
+
   get '/login' do
     if session[:user_id]
       redirect '/mypage'
@@ -135,7 +139,7 @@ class MainApp < Sinatra::Base
       halt 400, TEXT_PLAIN, "Parameter gateway_id is needed."
     end
 
-    objs = DeviceProperty.where(gateway_id: gateway_id, sensor: true)
+    objs = DeviceProperty.lwhere(gateway_id: gateway_id, sensor: true)
     return_hash = {}
 
     objs.each { |obj|
@@ -182,7 +186,7 @@ class MainApp < Sinatra::Base
       halt 400, TEXT_PLAIN, "Parameter gateway_id is needed."
     end
 
-    objs = DeviceProperty.where(gateway_id: gateway_id, sensor: false)
+    objs = DeviceProperty.lwhere(gateway_id: gateway_id, sensor: false)
     return_hash = {}
 
     objs.each { |obj|
@@ -234,16 +238,11 @@ class MainApp < Sinatra::Base
     }
 
     sid = params[:sensor_id]
-
-    unless DeviceProperty.exists?( id: sid, sensor: true )
-      halt 400, TEXT_PLAIN, "Requested sensor_id not found"
-    end
-
     start_time = Time.parse(params[:start])
 
-    objs = DeviceProperty.where(id: sid, sensor: true)
+    objs = DeviceProperty.lwhere(id: sid, sensor: true)
     if objs.empty?
-      halt 400, TEXT_PLAIN, "sensor_id not found."
+      halt 400, TEXT_PLAIN, "Requested sensor_id not found."
     end
 
     span_def = {
@@ -469,7 +468,7 @@ class MainApp < Sinatra::Base
 
     sensor_id = params[:sensor_id].to_i
 
-    unless DeviceProperty.exists?( id: sensor_id, sensor: true )
+    unless DeviceProperty.lexists?( id: sensor_id, sensor: true )
       halt 400, TEXT_PLAIN, "Requested sensor_id not found"
     end
 
@@ -501,7 +500,7 @@ class MainApp < Sinatra::Base
     end
 
     gateway_id = params[:gateway_id].to_i
-    dps = DeviceProperty.where(gateway_id: gateway_id, sensor: false).select(:id)
+    dps = DeviceProperty.lwhere(gateway_id: gateway_id, sensor: false).select(:id)
 
     h = {}
 
@@ -609,7 +608,7 @@ class MainApp < Sinatra::Base
   def sensor_data(posted_hash)
     id = posted_hash.keys[0]
 
-    unless DeviceProperty.exists?(id: id.to_i, sensor: true)
+    unless DeviceProperty.lexists?(id: id.to_i, sensor: true)
       halt 400, TEXT_PLAIN, "Posted sensor_id not found."
     end
 
@@ -655,7 +654,7 @@ class MainApp < Sinatra::Base
   def sensor_alert(posted_hash)
     id = posted_hash.keys[0]
 
-    unless DeviceProperty.exists?(id: id.to_i, sensor: true)
+    unless DeviceProperty.lexists?(id: id.to_i, sensor: true)
       halt 400, TEXT_PLAIN, "Posted sensor_id not found."
     end
 
@@ -686,7 +685,7 @@ class MainApp < Sinatra::Base
   def operation(posted_hash)
     id = posted_hash.keys[0]
 
-    unless DeviceProperty.exists?( id: id.to_i, sensor: false )
+    unless DeviceProperty.lexists?( id: id.to_i, sensor: false )
       halt 400, TEXT_PLAIN, "Posted controller_id not found."
     end
 
@@ -717,9 +716,8 @@ class MainApp < Sinatra::Base
 
   def device(posted_hash)
     posted_hash = posted_hash.symbolize_keys
-    key_array = [:hardware_uid, :class_group_code, :class_code, :properties]
 
-    key_array.each { |k|
+    [:hardware_uid, :class_group_code, :class_code, :properties].each { |k|
       unless posted_hash.has_key?(k)
         halt 400, TEXT_PLAIN, "'#{k.to_s}' is not found."
       end
@@ -736,49 +734,68 @@ class MainApp < Sinatra::Base
       device = Device.new({ gateway_id: gateway_id }.merge(posted_hash))
     end
 
-    unless device.save
-      halt 500, TEXT_PLAIN, "Failed to update device."
-    end
+    ary = []
+    p_ary = []
+    ids = []
 
-    h = {}
+    pties.each { |h|
+      h = h.symbolize_keys
 
-    pties.keys.each { |k|
+      [:class_group_code, :class_code, :property_code, :type].each { |k|
+        unless h.has_key?(k)
+          halt 400, TEXT_PLAIN, "'properties'.'#{k.to_s}' is not found."
+        end
+      }
+
       properties = DeviceProperty.where(
         device_id: device.id,
-        class_group_code: posted_hash[:class_group_code],
-        class_code: posted_hash[:class_code],
-        property_code: k.to_s
+        class_group_code: h[:class_group_code],
+        class_code: h[:class_code],
+        property_code: h[:property_code]
       )
 
       if properties.empty?
         property = DeviceProperty.new(
           gateway_id: gateway_id,
           device_id: device.id,
-          class_group_code: posted_hash[:class_group_code],
-          class_code: posted_hash[:class_code],
-          property_code: k.to_s,
-          sensor: pties[k] == "sensor"
+          class_group_code: h[:class_group_code],
+          class_code: h[:class_code],
+          property_code: h[:property_code],
+          sensor: h[:type] == "sensor"
         )
       else
         property = properties[0]
         property.lrestore
       end
 
-      unless property.save
-        halt 500, TEXT_PLAIN, "Failed to save property '#{k.to_s}'."
-      end
+      ary << {
+        "id" => property.id.to_s,
+        "class_group_code" => h[:class_group_code],
+        "class_code" => h[:class_code],
+        "property_code" => h[:property_code]
+      }
+      p_ary << property
+      ids << property.id
+    }
 
-      h.store(k.to_s, property.id.to_s)
+    unless device.save
+      halt 500, TEXT_PLAIN, "Failed to update device."
+    end
+
+    p_ary.each { |property|
+      unless property.save
+        halt 500, TEXT_PLAIN, "Failed to save property '#{property.id.to_s}'."
+      end
     }
 
     objs = DeviceProperty.where(device_id: device.id)
-    objs.where.not(property_code: h.keys)
+    objs.where.not(id: ids)
     objs.each { |obj|
       obj.ldelete
       obj.save
     }
 
-    JSON::generate({device.id.to_s => h})
+    JSON::generate({device.id.to_s => ary})
   end
 
   def device_property(posted_hash)
@@ -797,7 +814,7 @@ class MainApp < Sinatra::Base
   def monitor(posted_hash)
     id = posted_hash.keys[0]
 
-    unless DeviceProperty.exists?( id: id.to_i, sensor: true )
+    unless DeviceProperty.lexists?( id: id.to_i, sensor: true )
       halt 400, TEXT_PLAIN, "Posted sensor_id not found."
     end
 

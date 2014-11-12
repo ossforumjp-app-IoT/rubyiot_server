@@ -1,0 +1,16 @@
+!!!
+%haml{:lang => "ja"}
+  %head
+    %script{:type => "text/javascript", :src => "/js/jquery-1.11.1.min.js"}
+    %script{:type => "text/javascript", :src => "/js/highcharts.js"}
+    %script{:type => "text/javascript", :src => "/js/chart.js"}
+    :javascript
+      $(document).ready(function(){
+        draw(9, "2014-11-05+09:00:00", "weekly");
+
+        //$(#id_name).click(function(){
+        //
+        //})
+      });
+  %body
+    %div{:id => "container"}
