@@ -246,12 +246,12 @@ class MainApp < Sinatra::Base
     end
 
     span_def = {
-      "5-minutely" => { span: 300, interval: 3 },
-      "hourly" => { span: 3600, interval: 30 },
-      "daily" => { span: (24 * 3600), interval: 600 },
-      "weekly" => { span: (7 * 24 * 3600), interval: 3600 },
-      "monthly" => { span: (31 * 24 * 3600), interval: (6 * 3600) },
-      "yearly" => { span: (366 * 24 * 3600), interval: (24 * 3600) }
+      "5-minutely" => { span: 300, interval: 10 },
+      "hourly" => { span: 3600, interval: 120 },
+      "daily" => { span: (24 * 3600), interval: 3600 },
+      "weekly" => { span: (7 * 24 * 3600), interval: 6 * 3600 },
+      "monthly" => { span: (31 * 24 * 3600), interval: (24 * 3600) },
+      "yearly" => { span: (366 * 24 * 3600), interval: (10 * 24 * 3600) }
     }
 
     m = DeviceProperty.find(sid.to_i).definitions("magnification").to_s
@@ -259,133 +259,109 @@ class MainApp < Sinatra::Base
     return_hash = {}
 
     case params[:span]
-    when "5-minutely"
-      if start_time < (Time.now - (2 * 24 * 3600))
-        halt 400, TEXT_PLAIN, "5-minutely, more than 2 days ago is invalid."
-      end
-
-      w = "device_property_id = #{sid}"
-      w += " AND measured_at"
-      w += " BETWEEN '#{start_time.strftime("%Y-%m-%d %H:%M:%S")}'"
-      w += " AND '#{(start_time + 301).strftime("%Y-%m-%d %H:%M:%S")}'"
-
-      objs = SensorData.where(w)
-
-      objs.each { |obj|
-        return_hash[obj.measured_at.strftime("%Y-%m-%d %H:%M:%S")] =
-          m ? (BigDecimal(obj.value) * BigDecimal(m)).to_f.to_s : obj.value
-      }
-    when "hourly"
+    when "5-minutely", "hourly"
       if start_time < (Time.now - (2 * 24 * 3600))
         halt 400, TEXT_PLAIN, "hourly, more than 2 days ago is invalid."
       end
 
       t = start_time
 
-      while t <= start_time + span_def["hourly"][:span]
+      while t <= start_time + span_def[params[:span]][:span]
         w = "device_property_id = #{sid}"
         w += " AND measured_at"
         w += " BETWEEN '#{(t - 1).strftime("%Y-%m-%d %H:%M:%S")}'"
-        w += " AND '#{(t + 2).strftime("%Y-%m-%d %H:%M:%S")}'"
+        w += " AND '#{(t + span_def[params[:span]][:interval] - 1).strftime("%Y-%m-%d %H:%M:%S")}'"
 
         objs = SensorData.where(w)
 
-        if objs.length > 0
-          return_hash[objs[0].measured_at.strftime("%Y-%m-%d %H:%M:%S")] =
-            m ? (BigDecimal(objs[0].value) * BigDecimal(m)).to_f.to_s : objs[0].value
+        unless objs.empty?
+          vals = []
+          objs.each { |obj|
+            vals << BigDecimal(obj.value)
+          }
+
+          avg = (vals.inject(:+) / vals.size).round
+
+          return_hash[t.strftime("%Y-%m-%d %H:%M:%S")] =
+            m ? (BigDecimal(avg) * BigDecimal(m)).to_f.to_s : objs[0].value
         end
 
-        t += span_def["hourly"][:interval]
+        t += span_def[params[:span]][:interval]
       end
     when "daily"
-      if start_time < (Time.now - (2 * 24 * 3600))
-        w = "device_property_id = #{sid}"
-        w += " AND measured_at"
-        w += " BETWEEN '#{start_time.strftime("%Y-%m-%d %H:%M:%S")}'"
-        w += " AND '#{(start_time + span_def["daily"][:span] + 1).strftime("%Y-%m-%d %H:%M:%S")}'"
+      w = "device_property_id = #{sid}"
+      w += " AND measured_at"
+      w += " BETWEEN '#{start_time.strftime("%Y-%m-%d %H:%M:%S")}'"
+      w += " AND '#{(start_time + span_def["daily"][:span] + 1).strftime("%Y-%m-%d %H:%M:%S")}'"
 
-        objs = SensorHourlyData.where(w)
+      objs = SensorHourlyData.where(w)
+
+      objs.each { |obj|
+        return_hash[obj.measured_at.strftime("%Y-%m-%d %H:%M:%S")] =
+          m ? (BigDecimal(obj.value) * BigDecimal(m)).to_f.to_s : obj.value
+      }
+
+      shd_max = SensorHourlyData.where(device_property_id: sid.to_i).maximum(:measured_at)
+      shd_max = shd_max == nil ? start_time : shd_max
+      shd_max = shd_max < start_time ? start_time : shd_max
+
+      if start_time + span_def["daily"][:span] > shd_max
+        w = "device_property_id = #{sid}"
+        w += " AND measured_at "
+        w += " BETWEEN '#{shd_max.strftime("%Y-%m-%d %H:%M:%S")}'"
+        w += " AND '#{(start_time + span_def["daily"][:span]).strftime("%Y-%m-%d %H:%M:%S")}'"
+
+        date_format = case Adapter
+        when "mysql2"
+          "DATE_FORMAT(measured_at, '%Y-%m-%d %H:00:00') AS at"
+        when "sqlite3"
+          "strftime(measured_at, '%Y-%m-%d %H:00:00') AS at"
+        else
+          "TO_CHAR(measured_at, 'YYYY-MM-DD HH24:00:00') AS at"
+        end
+
+        objs = SensorData.where(w).select(date_format).uniq
 
         objs.each { |obj|
-          return_hash[obj.measured_at.strftime("%Y-%m-%d %H:%M:%S")] =
-            m ? (BigDecimal(obj.value) * BigDecimal(m)).to_f.to_s : obj.value
-        }
-
-        shd_max = SensorHourlyData.where(device_property_id: sid.to_i).maximum(:measured_at)
-        shd_max = shd_max == nil ? (Time.now - 48 * 60 * 60) : shd_max
-
-        if start_time + span_def["daily"][:span] > shd_max
-          w = "device_property_id = #{sid}"
-          w += " AND measured_at "
-          w += " BETWEEN '#{shd_max.strftime("%Y-%m-%d %H:%M:%S")}'"
-          w += " AND '#{Time.now.strftime("%Y-%m-%d %H:%M:%S")}'"
-
-          date_format = case Adapter
-          when "mysql2"
-            "DATE_FORMAT(measured_at, '%Y-%m-%d %H:00:00') AS at"
-          when "sqlite3"
-            "strftime(measured_at, '%Y-%m-%d %H:00:00') AS at"
-          else
-            "TO_CHAR(measured_at, 'YYYY-MM-DD HH24:00:00') AS at"
+          if obj.at == nil || t > (start_time + span_def["daily"][:span])
+            break
           end
 
-          objs = SensorData.where(w).select(date_format).uniq
+          t = Time.parse(obj.at)
 
-          objs.each { |obj|
-            if obj.at == nil || t > (start_time + span_def["daily"][:span])
-              break
-            end
-
-            t = Time.parse(obj.at)
-
-            w = "device_property_id = #{sid}"
-            w += " AND measured_at"
-            w += " BETWEEN '#{t.strftime("%Y-%m-%d %H:%M:%S")}'"
-            w += " AND '#{(t + 3600).strftime("%Y-%m-%d %H:%M:%S")}'"
-            datas = SensorData.where(w)
-
-            vals = []
-            datas.each { |d|
-              vals << BigDecimal(d.value)
-            }
-            vals.sort!
-
-            v = if vals.size >= 100
-              vals[2..-3].inject(:+) / vals[2..-3].size
-            else
-              vals.inject(:+) / vals.size
-            end
-            v = v.round
-
-            return_hash[obj.at] =
-              m ? (BigDecimal(v) * BigDecimal(m)).to_f.to_s : v
-          }
-        end
-      else
-        t = start_time
-
-        while t <= start_time + span_def["daily"][:span]
           w = "device_property_id = #{sid}"
           w += " AND measured_at"
-          w += " BETWEEN '#{(t - 1).strftime("%Y-%m-%d %H:%M:%S")}'"
-          w += " AND '#{(t + 10).strftime("%Y-%m-%d %H:%M:%S")}'"
+          w += " BETWEEN '#{t.strftime("%Y-%m-%d %H:%M:%S")}'"
+          w += " AND '#{(t + span_def["daily"][:interval]).strftime("%Y-%m-%d %H:%M:%S")}'"
+          datas = SensorData.where(w)
 
-          objs = SensorData.where(w)
+          vals = []
+          datas.each { |d|
+            vals << BigDecimal(d.value)
+          }
+          vals.sort!
 
-          if objs.length > 0
-            return_hash[objs[0].measured_at.strftime("%Y-%m-%d %H:%M:%S")] =
-              m ? (BigDecimal(objs[0].value) * BigDecimal(m)).to_f.to_s : objs[0].value
+          v = if vals.size >= 100
+            vals[2..-3].inject(:+) / vals[2..-3].size
+          else
+            vals.inject(:+) / vals.size
           end
+          v = v.round
 
-          t += span_def["daily"][:interval]
-        end
+          return_hash[obj.at] =
+            m ? (BigDecimal(v) * BigDecimal(m)).to_f.to_s : v
+        }
       end
     when "weekly", "monthly", "yearly"
       t = start_time
       shd_max = SensorHourlyData.where(device_property_id: sid.to_i).maximum(:measured_at)
-      shd_max = shd_max == nil ? (Time.now - 48 * 60 * 60) : shd_max
+      shd_max = shd_max == nil ? start_time : shd_max
 
       while t <= start_time + span_def[params[:span]][:span]
+        if t > shd_max
+          break
+        end
+
         w = "device_property_id = #{sid}"
         w += " AND measured_at"
         w += " BETWEEN '#{(t - 1800).strftime("%Y-%m-%d %H:%M:%S")}'"
@@ -398,10 +374,17 @@ class MainApp < Sinatra::Base
             m ? (BigDecimal(objs[0].value) * BigDecimal(m)).to_f.to_s : objs[0].value
         end
 
-        t += span_def[params[:span]][:interval]
-
-        if t > shd_max
-          break
+        if params[:span] == "yearly"
+          t = case t.day
+          when 20 && t.mon == 2
+              Time.new(t.year, 3, 1, t.hour, 0, 0)
+          when 21..31
+            Time.new(t.year, t.mon + 1, t.day - 20, t.hour, 0, 0)
+          else
+            t + 10 * 24 * 3600
+          end
+        else
+          t += span_def[params[:span]][:interval]
         end
       end
 
@@ -409,7 +392,7 @@ class MainApp < Sinatra::Base
         w = "device_property_id = #{sid}"
         w += " AND measured_at "
         w += " BETWEEN '#{shd_max.strftime("%Y-%m-%d %H:%M:%S")}'"
-        w += " AND '#{Time.now.strftime("%Y-%m-%d %H:%M:%S")}'"
+        w += " AND '#{(start_time + span_def[params[:span]][:span]).strftime("%Y-%m-%d %H:%M:%S")}'"
 
         date_format = case Adapter
         when "mysql2"

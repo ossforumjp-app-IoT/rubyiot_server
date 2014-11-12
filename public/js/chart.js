@@ -25,12 +25,6 @@ function draw(sensorid, start, span) {
     tooltip: {
       valueSuffix: '°C'
     },
-    legend: {
-      layout: 'vertical',
-      align: 'right',
-      verticalAlign: 'middle',
-      borderWidth: 0
-    },
     series: [{
       name: 'Tokyo',
       data: [7.0, 6.9, 9.5, 14.5, 18.2, 21.5, 25.2, 26.5, 23.3, 18.3, 13.9, 9.6]
@@ -46,8 +40,35 @@ function draw(sensorid, start, span) {
     var cats = new Array();
     var dats = new Array();
 
-    for(var key in contents){
-      cats.push(key);
+    var i = 0;
+    for(var key in contents) {
+      switch (span) {
+        case "5-minutely":
+        case "hourly":
+        case "daily":
+          if ((i % 5) == 0) {
+            cats.push(key.slice(-8));
+          }else{
+            cats.push("");
+          }
+          break;
+        case "weekly":
+          if ((i % 4) == 0) {
+            cats.push(key.substr(8, 8));
+          }else{
+            cats.push("");
+          }
+          break;
+        case "monthly":
+        case "yearly":
+          if ((i % 6) == 0) {
+            cats.push(key.substr(0, 10));
+          }else{
+            cats.push("");
+          }
+          break;
+      }
+      i++;
       dats.push(contents[key] - 0);
     };
 
