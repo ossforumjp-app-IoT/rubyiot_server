@@ -41,6 +41,7 @@ function draw(sensorid, start, span) {
     var dats = new Array();
 
     var i = 0;
+    var step = 3;
     for(var key in contents) {
       switch (span) {
         case "5-minutely":
@@ -52,8 +53,10 @@ function draw(sensorid, start, span) {
           break;
         case "weekly":
           cats.push(key.substr(8, 8));
+          step = 4;
           break;
         case "monthly":
+          step = 5;
         case "yearly":
           cats.push(key.substr(5, 5).replace("-", "/"));
           break;
@@ -63,7 +66,7 @@ function draw(sensorid, start, span) {
     };
 
     options["title"] = {text: span.toUpperCase() + " Temperature", x: -20}
-    options["xAxis"] = {categories: cats};
+    options["xAxis"] = {categories: cats, labels: {step: step, rotation: -60}};
     options["series"] = [{name: "sensor " + sensorid, data: dats}]
 
     // グラフを作成
