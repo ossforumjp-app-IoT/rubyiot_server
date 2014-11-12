@@ -5,8 +5,34 @@
     %script{:type => "text/javascript", :src => "/js/highcharts.js"}
     %script{:type => "text/javascript", :src => "/js/chart.js"}
     :javascript
+      function getQuerystring(key, default_) {
+        if (default_ == null) {
+          default_ = "";
+        }
+        key = key.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+        var regex = new RegExp("[\\?&]" + key + "=([^&#]*)");
+        var qs = regex.exec(window.location.href);
+        if (qs == null) {
+          return default_;
+        }else{
+          return qs[1];
+        }
+      }
+
       $(document).ready(function(){
-        draw(9, "2014-11-05+09:00:00", "weekly");
+        var now = new Date();
+        var formated24HourAgo = now.getFullYear() + "-";
+        formated24HourAgo += ("0" + (now.getMonth() + 1)).slice(-2) + "-";
+        formated24HourAgo += ("0" + (now.getDate() - 1)).slice(-2) + " ";
+        formated24HourAgo += ("0" + now.getHours()).slice(-2) + ":";
+        formated24HourAgo += ("0" + now.getMinutes()).slice(-2) + ":";
+        formated24HourAgo += ("0" + now.getSeconds()).slice(-2);
+
+        var sensorid = getQuerystring("sensor_id", 1);
+        var start = getQuerystring("start", formated24HourAgo);
+        var span = getQuerystring("span", "daily");
+
+        draw(sensorid, start, span);
 
         //$(#id_name).click(function(){
         //
