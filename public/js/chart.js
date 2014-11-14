@@ -1,7 +1,7 @@
 function draw(sensorid, start, span) {
   var options = {
     chart: {
-      width:500,
+      width:600,
       heigth:300
     },
     title: {
@@ -65,6 +65,7 @@ function draw(sensorid, start, span) {
       dats.push(contents[key] - 0);
     };
 
+    options["chart"] = {width: $("#container").parent().width(), heigth: 300};
     options["title"] = {text: span.toUpperCase() + " Temperature", x: -20}
     options["xAxis"] = {categories: cats, labels: {step: step, rotation: -60}};
     options["series"] = [{name: "sensor " + sensorid, data: dats}]

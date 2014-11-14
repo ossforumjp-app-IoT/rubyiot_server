@@ -29,16 +29,24 @@
         formated24HourAgo += ("0" + now.getMinutes()).slice(-2) + ":";
         formated24HourAgo += ("0" + now.getSeconds()).slice(-2);
 
-        var sensorid = getQuerystring("sensor_id", 1);
-        var start = getQuerystring("start", formated24HourAgo);
-        var span = getQuerystring("span", "daily");
+        $("input[name='_sensorid']").val(getQuerystring("sensor_id", 1));
+        $("input[name='_start']").val(getQuerystring("start", formated24HourAgo));
+        $("input[name='_span']").val(getQuerystring("span", "daily"));
 
-        draw(sensorid, start, span);
+        draw($("input[name='_sensorid']").val(), $("input[name='_start']").val(), $("input[name='_span']").val());
 
         //$(#id_name).click(function(){
         //
         //})
       });
 
+      $(window).bind("resize",function(){
+        draw($("input[name='_sensorid']").val(), $("input[name='_start']").val(), $("input[name='_span']").val());
+      });
+
   %body
-    %div{:id => "container"}
+    %div{}
+      %div{:id => "container"}
+      %input{:type => "hidden", :name => "_sensorid"}
+      %input{:type => "hidden", :name => "_start"}
+      %input{:type => "hidden", :name => "_span"}
