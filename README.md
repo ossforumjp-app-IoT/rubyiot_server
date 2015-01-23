@@ -257,6 +257,7 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
 本番環境では、MySQLのデータベースを以下のように用意します。
 なお、ここではlocalhostにデータベースを用意していますが、異なるホストに用意する場合は、
 適宜内容を変更してください。
+また、パスワードを 'secret' としていますが、これも適切なものに変更してください。
 
     mysql> CREATE DATABASE rubyiot_server DEFAULT CHARACTER SET 'utf8';
     mysql> GRANT ALL PRIVILEGES ON rubyiot_server.* TO 'rubyiot'@'localhost' IDENTIFIED BY 'secret'
@@ -270,6 +271,7 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
     $ mkdir tmp
     $ bundle install --path vendor/bundle
     $ export RAILS_ENV=production
+    $ export RUBYIOT_SERVER_DATABASE_PASSWORD=secret #作成したデータベースのパスワード
     $ bundle exec rake db:migrate
     $ bundle exec unicorn -c unicorn.rb -E production -D
 

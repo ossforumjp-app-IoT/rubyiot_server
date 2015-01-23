@@ -789,7 +789,7 @@ class MainApp < Sinatra::Base
     unless obj.update_attributes(attributes)
       halt 500, TEXT_PLAIN, "Cannot update."
     end
-    sensor.save
+    obj.save
 
     "OK"
   end
