@@ -284,7 +284,7 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
 
 ライセンス
 ----------
-Copyright(C) 2014 Japan OSS Promotion Forum
+Copyright(C) 2015 Japan OSS Promotion Forum
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
