@@ -2,7 +2,7 @@ function draw(sensorid, start, span) {
   var options = {
     chart: {
       width:600,
-      heigt:300
+      height:300
     },
     title: {
       text: 'Monthly Temperature',
