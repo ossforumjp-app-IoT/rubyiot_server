@@ -190,7 +190,7 @@ class MainApp < Sinatra::Base
     return_hash = {}
 
     objs.each { |obj|
-      maxid = Operation.where(device_property_id: obj.id, status: 0).maximum(:id)
+      maxid = Operation.where(device_property_id: obj.id, status: "0").maximum(:id)
       v = maxid ? Operation.find(maxid).value : "1"
 
       h = {
