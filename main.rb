@@ -690,6 +690,11 @@ class MainApp < Sinatra::Base
     obj = Operation.find(id.to_i)
     obj.status = posted_hash[id]
 
+    # Gatewayが"2"を返しているとのことで暫定対応
+    if obj.status == "2"
+      obj.status = "0"
+    end
+
     unless obj.save
       halt 500, TEXT_PLAIN, "Failed to update operation status."
     end
