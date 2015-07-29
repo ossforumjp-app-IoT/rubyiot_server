@@ -91,6 +91,77 @@ RSpec.describe MainApp do
     end
   end
 
+  describe "/api/operationへのアクセス" do
+    posted_data = { "10" => "operation_value" }
+    before do
+      DeviceProperty.delete_all
+      DeviceProperty.create(id: posted_data.keys[0].to_i, sensor: false)
+      post "/api/operation", posted_data.to_json
+    end
+
+    include_examples "return_status_code", 201
+
+    it "返却されるJSONにoperation_idがあること" do
+      expect(last_response.body).to have_json_path("operation_id")
+    end
+
+    it "OperationのValueが設定されていること" do
+      op = Operation.where(device_property_id: posted_data.keys[0].to_i).first
+      expect(op.value).to eq("operation_value")
+    end
+  end
+
+  describe "/api/operation_statusへのアクセス" do
+    posted_data = { "10" => "0" }
+    before do
+      Operation.delete_all
+      Operation.create(id: posted_data.keys[0].to_i)
+      post "/api/operation_status", posted_data.to_json
+    end
+
+    include_examples "return_status_code", 201
+    include_examples "return_body_message", "OK"
+
+    it "Operationのstatusが設定されていること" do
+      op = Operation.find(posted_data.keys[0].to_i)
+      expect(op.status).to eq("0")
+    end
+  end
+
+  describe "/api/deviceへのアクセス" do
+    posted_data = { "hardware_uid" => "hardware_uid",
+                    "properties" =>
+                        [
+                          { "class_group_code" => "0x01",
+                            "class_code" => "0x02",
+                            "property_code" => "0x03",
+                            "type" => "sensor" },
+                        ],
+                    "class_group_code" => "dummy",
+                    "class_code" => "dummy"
+    }
+
+    before do
+      Device.delete_all
+      DeviceProperty.delete_all
+      post "/api/device", posted_data.to_json
+    end
+
+    include_examples "return_status_code", 201
+
+    it "返却されるJSONにclass_group_code, class_code, property_codeがあること" do
+      d = Device.all.order(:created_at).first
+      expect(last_response.body).to have_json_path("#{d.id}/0/class_group_code")
+      expect(last_response.body).to have_json_path("#{d.id}/0/class_code")
+      expect(last_response.body).to have_json_path("#{d.id}/0/property_code")
+    end
+
+    it "Deviceのhardware_uidが設定されていること" do
+      device = Device.where(gateway_id: 1).first
+      expect(device.hardware_uid).to eq("hardware_uid")
+    end
+  end
+
   describe "/api/controllerへのアクセス" do
     posted_data = { "10" => { "name" => "name1" } }
     before do
