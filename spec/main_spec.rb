@@ -40,18 +40,44 @@ RSpec.describe MainApp do
   end
 
   describe "/api/sensorへのアクセス" do
-    posted_data = { "10" => { "name" => "name1" } }
-    before do
-      DeviceProperty.delete_all
-      DeviceProperty.create(id: posted_data.keys[0].to_i)
-      post "/api/sensor", posted_data.to_json
+    context "GET" do
+      before do
+        DeviceProperty.delete_all
+        SensorData.delete_all
+
+        @dp1 = DeviceProperty.create(gateway_id: 12, name: "dp1", sensor: true)
+        @dp2 = DeviceProperty.create(gateway_id: 12, name: "dp2", sensor: true)
+        SensorData.create(device_property_id: @dp1.id, measured_at: Time.now)
+        SensorData.create(device_property_id: @dp2.id, measured_at: Time.now)
+
+        get "/api/sensor", gateway_id: "12"
+      end
+
+      include_examples "return_status_code", 200
+
+      it "返されるJSONにdp1の項目が設定されていること" do
+        expect(last_response.body).to be_json_eql("\"#{@dp1.name}\"").at_path("#{@dp1.id}/name")
+      end
+
+      it "返されるJSONにdp2の項目が設定されていること" do
+        expect(last_response.body).to be_json_eql("\"#{@dp2.name}\"").at_path("#{@dp2.id}/name")
+      end
     end
 
-    include_examples "return_status_code", 201
-    include_examples "return_body_message", "OK"
+    context "POST" do
+      posted_data = { "10" => { "name" => "name1" } }
+      before do
+        DeviceProperty.delete_all
+        DeviceProperty.create(id: posted_data.keys[0].to_i)
+        post "/api/sensor", posted_data.to_json
+      end
 
-    it "DevicePropertyのnameが設定されていること" do
-      expect(DeviceProperty.find(posted_data.keys[0].to_i).name).to eq("name1")
+      include_examples "return_status_code", 201
+      include_examples "return_body_message", "OK"
+
+      it "DevicePropertyのnameが設定されていること" do
+        expect(DeviceProperty.find(posted_data.keys[0].to_i).name).to eq("name1")
+      end
     end
   end
 
@@ -163,36 +189,86 @@ RSpec.describe MainApp do
   end
 
   describe "/api/controllerへのアクセス" do
-    posted_data = { "10" => { "name" => "name1" } }
-    before do
-      DeviceProperty.delete_all
-      DeviceProperty.create(id: posted_data.keys[0].to_i)
-      post "/api/sensor", posted_data.to_json
+    context "GET" do
+      before do
+        DeviceProperty.delete_all
+        Operation.delete_all
+
+        @dp1 = DeviceProperty.create(gateway_id: 12, name: "dp1", sensor: false)
+        @dp2 = DeviceProperty.create(gateway_id: 12, name: "dp2", sensor: false)
+        Operation.create(device_property_id: @dp1.id, status: 0)
+        Operation.create(device_property_id: @dp2.id, status: 0)
+
+        get "/api/controller", gateway_id: "12"
+      end
+
+      include_examples "return_status_code", 200
+
+      it "返されるJSONにdp1の項目が設定されていること" do
+        expect(last_response.body).to be_json_eql("\"#{@dp1.name}\"").at_path("#{@dp1.id}/name")
+      end
+
+      it "返されるJSONにdp2の項目が設定されていること" do
+        expect(last_response.body).to be_json_eql("\"#{@dp2.name}\"").at_path("#{@dp2.id}/name")
+      end
     end
 
-    include_examples "return_status_code", 201
-    include_examples "return_body_message", "OK"
+    context "POST" do
+      posted_data = { "10" => { "name" => "name1" } }
+      before do
+        DeviceProperty.delete_all
+        DeviceProperty.create(id: posted_data.keys[0].to_i)
+        post "/api/sensor", posted_data.to_json
+      end
 
-    it "DevicePropertyのnameが設定されていること" do
-      expect(DeviceProperty.find(posted_data.keys[0].to_i).name).to eq("name1")
+      include_examples "return_status_code", 201
+      include_examples "return_body_message", "OK"
+
+      it "DevicePropertyのnameが設定されていること" do
+        expect(DeviceProperty.find(posted_data.keys[0].to_i).name).to eq("name1")
+      end
     end
   end
 
   describe "/api/monitorへのアクセス" do
-    posted_data = { "10" => { "min" => "12", "max" => "43" } }
-    before do
-      DeviceProperty.delete_all
-      DeviceProperty.create(id: posted_data.keys[0].to_i, sensor: true)
-      post "/api/monitor", posted_data.to_json
+    context "GET" do
+      before do
+        MonitorRange.delete_all
+        DeviceProperty.delete_all
+
+        MonitorRange.create(device_property_id: 124, min_value: 101, max_value: 4321)
+        DeviceProperty.create(id: 124)
+
+        get "/api/monitor", sensor_id: 124
+      end
+
+      include_examples "return_status_code", 200
+
+      it "返されるJSONにminの項目が設定されていること" do
+        expect(last_response.body).to be_json_eql("\"101\"").at_path("min")
+      end
+
+      it "返されるJSONにmaxの項目が設定されていること" do
+        expect(last_response.body).to be_json_eql("\"4321\"").at_path("max")
+      end
     end
 
-    include_examples "return_status_code", 201
-    include_examples "return_body_message", "OK"
+    context "POST" do
+      posted_data = { "10" => { "min" => "12", "max" => "43" } }
+      before do
+        DeviceProperty.delete_all
+        DeviceProperty.create(id: posted_data.keys[0].to_i, sensor: true)
+        post "/api/monitor", posted_data.to_json
+      end
 
-    it "MonitorRangeのmax/minが設定されていること" do
-      id = posted_data.keys[0].to_i
-      expect(MonitorRange.where(device_property_id: id).first.min_value).to eq("12")
-      expect(MonitorRange.where(device_property_id: id).first.max_value).to eq("43")
+      include_examples "return_status_code", 201
+      include_examples "return_body_message", "OK"
+
+      it "MonitorRangeのmax/minが設定されていること" do
+        id = posted_data.keys[0].to_i
+        expect(MonitorRange.where(device_property_id: id).first.min_value).to eq("12")
+        expect(MonitorRange.where(device_property_id: id).first.max_value).to eq("43")
+      end
     end
   end
 end
