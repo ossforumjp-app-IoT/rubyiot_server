@@ -1,4 +1,8 @@
 ENV["RACK_ENV"] = "test"
+require "simplecov"
+SimpleCov.start do
+  add_filter "/bundle/"
+end
 
 require File.join(File.dirname(__FILE__), "..", "main.rb")
 

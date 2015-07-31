@@ -15,4 +15,5 @@ group :test do
   gem "rspec"
   gem "rack-test"
   gem "json_spec"
+  gem "simplecov", require: false
 end
