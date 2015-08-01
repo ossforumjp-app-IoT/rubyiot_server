@@ -82,19 +82,48 @@ RSpec.describe MainApp do
   end
 
   describe "/api/sensor_dataへのアクセス" do
-    posted_data = { "10" => "measured_data" }
-    before do
-      DeviceProperty.delete_all
-      DeviceProperty.create(id: posted_data.keys[0].to_i, sensor: true)
-      post "/api/sensor_data", posted_data.to_json
+    context "GET" do
+      before do
+        DeviceProperty.delete_all
+        dp = DeviceProperty.create(sensor: true)
+        base_time = Time.now - 3*24*60*60 # 現在時刻の3日前
+
+        @shd1 = SensorHourlyData.create(device_property_id: dp.id, measured_at: base_time + 60*60, value: "123")
+        @shd2 = SensorHourlyData.create(device_property_id: dp.id, measured_at: base_time + 2*60*60, value: "456")
+        @shd3 = SensorHourlyData.create(device_property_id: dp.id, measured_at: base_time + 3*60*60, value: "789")
+
+        @sd1 = SensorData.create(device_property_id: dp.id, measured_at: base_time + 60*60)
+        @sd2 = SensorData.create(device_property_id: dp.id, measured_at: base_time + 2*60*60)
+        @sd3 = SensorData.create(device_property_id: dp.id, measured_at: base_time + 3*60*60)
+        get "/api/sensor_data", sensor_id: dp.id, start: base_time.to_s, span: "daily"
+      end
+
+      include_examples "return_status_code", 200
+
+      it "返されるJSONにが設定されていること" do
+        expect(last_response.body).to be_json_eql(
+          {@shd1.measured_at.strftime("%Y-%m-%d %H:%M:%S") => @shd1.value.to_f.to_s,
+           @shd2.measured_at.strftime("%Y-%m-%d %H:%M:%S") => @shd2.value.to_f.to_s,
+           @shd3.measured_at.strftime("%Y-%m-%d %H:%M:%S") => @shd3.value.to_f.to_s,
+ }.to_json)
+      end
     end
 
-    include_examples "return_status_code", 201
-    include_examples "return_body_message", "OK"
+    context "POST" do
+      posted_data = { "10" => "measured_data" }
+      before do
+        DeviceProperty.delete_all
+        DeviceProperty.create(id: posted_data.keys[0].to_i, sensor: true)
+        post "/api/sensor_data", posted_data.to_json
+      end
 
-    it "SensorDataのvalueが設定されていること" do
-      id = posted_data.keys[0].to_i
-      expect(SensorData.where(device_property_id: id).first.value).to eq("measured_data")
+      include_examples "return_status_code", 201
+      include_examples "return_body_message", "OK"
+
+      it "SensorDataのvalueが設定されていること" do
+        id = posted_data.keys[0].to_i
+        expect(SensorData.where(device_property_id: id).first.value).to eq("measured_data")
+      end
     end
   end
 
