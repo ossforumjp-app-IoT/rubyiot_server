@@ -82,30 +82,57 @@ RSpec.describe MainApp do
   end
 
   describe "/api/sensor_dataへのアクセス" do
-    context "GET" do
-      before do
-        DeviceProperty.delete_all
-        dp = DeviceProperty.create(sensor: true)
-        base_time = Time.now - 3*24*60*60 # 現在時刻の3日前
+    describe "GET" do
+      context "daily" do
+        before do
+          DeviceProperty.delete_all
+          SensorHourlyData.delete_all
+          dp = DeviceProperty.create(sensor: true)
+          base_time = Time.now - 3*24*60*60 # 現在時刻の3日前
 
-        @shd1 = SensorHourlyData.create(device_property_id: dp.id, measured_at: base_time + 60*60, value: "123")
-        @shd2 = SensorHourlyData.create(device_property_id: dp.id, measured_at: base_time + 2*60*60, value: "456")
-        @shd3 = SensorHourlyData.create(device_property_id: dp.id, measured_at: base_time + 3*60*60, value: "789")
+          @shd1 = SensorHourlyData.create(device_property_id: dp.id, measured_at: base_time + 60*60, value: "123")
+          @shd2 = SensorHourlyData.create(device_property_id: dp.id, measured_at: base_time + 2*60*60, value: "456")
+          @shd3 = SensorHourlyData.create(device_property_id: dp.id, measured_at: base_time + 3*60*60, value: "789")
 
-        @sd1 = SensorData.create(device_property_id: dp.id, measured_at: base_time + 60*60)
-        @sd2 = SensorData.create(device_property_id: dp.id, measured_at: base_time + 2*60*60)
-        @sd3 = SensorData.create(device_property_id: dp.id, measured_at: base_time + 3*60*60)
-        get "/api/sensor_data", sensor_id: dp.id, start: base_time.to_s, span: "daily"
+          @sd1 = SensorData.create(device_property_id: dp.id, measured_at: base_time + 60*60)
+          @sd2 = SensorData.create(device_property_id: dp.id, measured_at: base_time + 2*60*60)
+          @sd3 = SensorData.create(device_property_id: dp.id, measured_at: base_time + 3*60*60)
+          get "/api/sensor_data", sensor_id: dp.id, start: base_time.to_s, span: "daily"
+        end
+
+        include_examples "return_status_code", 200
+
+        it "返されるJSONにSensorHourlyDataの値が設定されていること" do
+          expect(last_response.body).to be_json_eql(
+            {@shd1.measured_at.strftime("%Y-%m-%d %H:%M:%S") => @shd1.value.to_f.to_s,
+             @shd2.measured_at.strftime("%Y-%m-%d %H:%M:%S") => @shd2.value.to_f.to_s,
+             @shd3.measured_at.strftime("%Y-%m-%d %H:%M:%S") => @shd3.value.to_f.to_s,
+          }.to_json)
+        end
       end
 
-      include_examples "return_status_code", 200
+      context "hourly" do
+        before do
+          DeviceProperty.delete_all
+          SensorHourlyData.delete_all
+          dp = DeviceProperty.create(sensor: true)
+          base_time = Time.now - 1*24*60*60 # 現在時刻の1日前
 
-      it "返されるJSONにが設定されていること" do
-        expect(last_response.body).to be_json_eql(
-          {@shd1.measured_at.strftime("%Y-%m-%d %H:%M:%S") => @shd1.value.to_f.to_s,
-           @shd2.measured_at.strftime("%Y-%m-%d %H:%M:%S") => @shd2.value.to_f.to_s,
-           @shd3.measured_at.strftime("%Y-%m-%d %H:%M:%S") => @shd3.value.to_f.to_s,
- }.to_json)
+          @sd1 = SensorData.create(device_property_id: dp.id, measured_at: base_time + 60*60, value: "123")
+          @sd2 = SensorData.create(device_property_id: dp.id, measured_at: base_time + 2*60, value: "456")
+          @sd3 = SensorData.create(device_property_id: dp.id, measured_at: base_time + 3*60, value: "789")
+          get "/api/sensor_data", sensor_id: dp.id, start: base_time.to_s, span: "hourly"
+        end
+
+        include_examples "return_status_code", 200
+
+        it "返されるJSONにSensorDataの値が設定されていること" do
+          avg = ((@sd2.value.to_f + @sd3.value.to_f) / 2.0).round
+          expect(last_response.body).to be_json_eql(
+            {@sd1.measured_at.strftime("%Y-%m-%d %H:%M:%S") => @sd1.value.to_f.to_s,
+            @sd2.measured_at.strftime("%Y-%m-%d %H:%M:%S") => avg.to_f.to_s,
+          }.to_json)
+        end
       end
     end
 
@@ -128,58 +155,118 @@ RSpec.describe MainApp do
   end
 
   describe "/api/sensor_alertへのアクセス" do
-    posted_data = { "10" => { "value" => "val1", "min": "min1", "max": "max1" } }
-    before do
-      DeviceProperty.delete_all
-      DeviceProperty.create(id: posted_data.keys[0].to_i, sensor: true)
-      post "/api/sensor_alert", posted_data.to_json
+    context "GET" do
+      before do
+        DeviceProperty.delete_all
+        SensorAlert.delete_all
+
+        base_time = Time.now - 3*24*60*60 # 現在時刻の3日前
+        dp1 = DeviceProperty.create(name: "dp1", sensor: true)
+        @sa = SensorAlert.create(device_property_id: dp1.id, measured_at: base_time, value: "123")
+
+        get "/api/sensor_alert", sensor_id: dp1.id, datetime: base_time.strftime("%Y-%m-%d %H:%M:%S")
+      end
+
+      include_examples "return_status_code", 200
+
+      it "返されるJSONにSensorAlertの値が設定されていること" do
+        expect(last_response.body).to be_json_eql("\"#{@sa.value}\"").at_path("value")
+      end
     end
 
-    include_examples "return_status_code", 201
-    include_examples "return_body_message", "OK"
+    context "POST" do
+      posted_data = { "10" => { "value" => "val1", "min": "min1", "max": "max1" } }
+      before do
+        DeviceProperty.delete_all
+        DeviceProperty.create(id: posted_data.keys[0].to_i, sensor: true)
+        post "/api/sensor_alert", posted_data.to_json
+      end
 
-    it "SensorAlertのvalue,monitor_min_value,monitor_max_valueが設定されていること" do
-      sa = SensorAlert.where(device_property_id: posted_data.keys[0].to_i).first
-      expect(sa.value).to eq("val1")
-      expect(sa.monitor_min_value).to eq("min1")
-      expect(sa.monitor_max_value).to eq("max1")
+      include_examples "return_status_code", 201
+      include_examples "return_body_message", "OK"
+
+      it "SensorAlertのvalue,monitor_min_value,monitor_max_valueが設定されていること" do
+        sa = SensorAlert.where(device_property_id: posted_data.keys[0].to_i).first
+        expect(sa.value).to eq("val1")
+        expect(sa.monitor_min_value).to eq("min1")
+        expect(sa.monitor_max_value).to eq("max1")
+      end
     end
   end
 
   describe "/api/operationへのアクセス" do
-    posted_data = { "10" => "operation_value" }
-    before do
-      DeviceProperty.delete_all
-      DeviceProperty.create(id: posted_data.keys[0].to_i, sensor: false)
-      post "/api/operation", posted_data.to_json
+    context "GET" do
+      before do
+        DeviceProperty.delete_all
+        Operation.delete_all
+
+        @dp = DeviceProperty.create(gateway_id: 126, sensor: false)
+        @op = Operation.create(device_property_id: @dp.id, value: "123")
+
+        get "/api/operation", gateway_id: @dp.gateway_id
+      end
+
+      include_examples "return_status_code", 200
+
+      it "返されるJSONにOperationの値が設定されていること" do
+        expect(last_response.body).to be_json_eql("\"#{@op.value}\"").at_path("#{@dp.id}/value")
+      end
     end
 
-    include_examples "return_status_code", 201
+    context "POST" do
+      posted_data = { "10" => "operation_value" }
+      before do
+        DeviceProperty.delete_all
+        DeviceProperty.create(id: posted_data.keys[0].to_i, sensor: false)
+        post "/api/operation", posted_data.to_json
+      end
 
-    it "返却されるJSONにoperation_idがあること" do
-      expect(last_response.body).to have_json_path("operation_id")
-    end
+      include_examples "return_status_code", 201
 
-    it "OperationのValueが設定されていること" do
-      op = Operation.where(device_property_id: posted_data.keys[0].to_i).first
-      expect(op.value).to eq("operation_value")
+      it "返却されるJSONにoperation_idがあること" do
+        expect(last_response.body).to have_json_path("operation_id")
+      end
+
+      it "OperationのValueが設定されていること" do
+        op = Operation.where(device_property_id: posted_data.keys[0].to_i).first
+        expect(op.value).to eq("operation_value")
+      end
     end
   end
 
   describe "/api/operation_statusへのアクセス" do
-    posted_data = { "10" => "0" }
-    before do
-      Operation.delete_all
-      Operation.create(id: posted_data.keys[0].to_i)
-      post "/api/operation_status", posted_data.to_json
+    context "GET" do
+      before do
+        Operation.delete_all
+
+        @op = Operation.create(value: "123")
+
+        get "/api/operation_status", operation_id: @op.id
+      end
+
+      include_examples "return_status_code", 200
+
+      it "返されるJSONにOperationの値が設定されていること" do
+        expect(last_response.body).to be_json_eql("\"#{@op.value}\"").at_path("value")
+      end
+
     end
 
-    include_examples "return_status_code", 201
-    include_examples "return_body_message", "OK"
+    context "POST" do
+      posted_data = { "10" => "0" }
+      before do
+        Operation.delete_all
+        Operation.create(id: posted_data.keys[0].to_i)
+        post "/api/operation_status", posted_data.to_json
+      end
 
-    it "Operationのstatusが設定されていること" do
-      op = Operation.find(posted_data.keys[0].to_i)
-      expect(op.status).to eq("0")
+      include_examples "return_status_code", 201
+      include_examples "return_body_message", "OK"
+
+      it "Operationのstatusが設定されていること" do
+        op = Operation.find(posted_data.keys[0].to_i)
+        expect(op.status).to eq("0")
+      end
     end
   end
 
@@ -298,6 +385,22 @@ RSpec.describe MainApp do
         expect(MonitorRange.where(device_property_id: id).first.min_value).to eq("12")
         expect(MonitorRange.where(device_property_id: id).first.max_value).to eq("43")
       end
+    end
+  end
+
+  describe "/api/sensor_data_sumへのアクセス" do
+    before do
+      SensorData.delete_all
+
+      base_time = Time.now - 3 * 24 * 60 * 60 # 現在時刻の3日前
+      @sd1 = SensorData.create(device_property_id: "121", measured_at: base_time, value: "111")
+      @sd2 = SensorData.create(device_property_id: "122", measured_at: base_time - 24 * 60 * 60, value: "222")
+
+      get "/api/sensor_data_sum"
+    end
+
+    it "返されるテキストにSensorDataの値が設定されていること" do
+      expect(last_response.body).to eq("#{@sd1.device_property_id} | #{@sd1.measured_at.strftime("%Y-%m-%d %H:00:00")}\n#{@sd2.device_property_id} | #{@sd2.measured_at.strftime("%Y-%m-%d %H:00:00")}\n")
     end
   end
 end
