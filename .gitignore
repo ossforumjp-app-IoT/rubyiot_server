@@ -40,3 +40,6 @@ Gemfile.lock
 /log/
 /vendor/
 *.db
+
+bundle/
+

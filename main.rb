@@ -13,10 +13,8 @@ require 'sinatra/reloader'
 
 require_relative './models'
 
-rails_env = ENV["RAILS_ENV"] ? ENV["RAILS_ENV"].to_sym : :development
-
 ActiveRecord::Base.configurations = YAML.load_file('db/database.yml')
-ActiveRecord::Base.establish_connection(rails_env)
+ActiveRecord::Base.establish_connection(Sinatra::Base.settings.environment)
 ActiveRecord::Base.default_timezone = :local
 
 Adapter = ActiveRecord::Base.connection.instance_values['config'][:adapter]
