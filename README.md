@@ -35,17 +35,15 @@ serverの機能
 ------------
 ### Web画面
 
-* /login
+* /login  
 ログイン画面が表示され、ユーザー名とパスワードを入力して「Login」
 ボタンをクリックすることで、loginセッションを取得します。
-
-* /mypage
+* /mypage  
 以下の機能を提供します。loginセッションが必要です。
   * 自宅などのgatewayのhardware_uid登録機能
   * 温度の表示機能
   * logout機能
-
-* /chart
+* /chart  
 温度変化のグラフを提供します。loginセッションが必要です。
 
 ### API
@@ -150,7 +148,7 @@ loginセッションが必要です。
 
 #### mobile向けのAPI
 
-* POST /api/login
+* POST /api/login  
   * 機能: loginセッションを取得する。
   * アクセス: mobile => server
   * POSTデータ: 以下のJSON形式のデータ
@@ -163,13 +161,58 @@ loginセッションが必要です。
   * アクセス: mobile => server
   * GETデータ: "OK" or "NG"  
 
+* POST /api/user
+  * 機能: ログインしているユーザーのユーザー情報を更新する。
+  * アクセス: mobile => server
+  * POSTデータ: 以下のJSON形式のデータ
+
+            { "nickname": "xxx",
+              "email": "yyy@zzz.com" }
+
+* POST /api/password
+  * 機能: ログインしているユーザーのパスワードを更新する。
+  * アクセス: mobile => server
+  * POSTデータ: 以下のJSON形式のデータ
+
+            { "password": "xxx" }
+
+* POST /api/gateway_add  
+  * 機能: 自宅などのgatewayを追加する。
+  * アクセス: mobile => server
+  * POSTデータ: 以下のJSON形式のデータ
+
+            { "hardware_uid": "xxx",
+              "name": "gatewayの任意の名前" }
+
+* POST /api/gateway_del  
+  * 機能: 自宅などのgatewayを削除する。
+  * アクセス: mobile => server
+  * POSTデータ: 以下のJSON形式のデータ
+
+            { "hardware_uid": "xxx" }
+
+* GET /api/gateway  
+  * 機能: ログインしているユーザーの配下にあるgatewayのリストを取得する。
+  * アクセス: mobile => server
+  * クエリ: gateway_id
+  * GETデータ: 以下のJSON形式のデータ  
+  （keyの"xxx"はserverで管理するgateway_id）
+
+            { "xxx":
+              { "hardware_uid": "yyy",
+                "name": "gatewayの名前" },
+
+              ...
+
+            }
+
 * POST /api/sensor  
   * 機能: sensorの名前を登録・更新する。
   * アクセス: mobile => server
   * POSTデータ: 以下のJSON形式のデータ
   （keyの"xxx"はserverで管理するsensor_id）
 
-            { "xxx": { "name": "センサーの名前" } }
+            { "xxx": { "name": "センサーの任意の名前" } }
 
 * GET /api/sensor?gateway_id=xxx  
   * 機能: 指定したgatewayの配下にあるsensorのリストを取得する。
