@@ -62,7 +62,33 @@ class MainApp < Sinatra::Base
   end
 
   get '/chart' do
+    #unless session[:user_id]
+    #  redirect '/login'
+    #end
+
     haml :chart
+  end
+
+  get '/signup' do
+    haml :signup
+  end
+
+  post '/signup' do
+    logout
+
+    user = User.new(
+      login_name: params[:username],
+      email: params[:email],
+      nickname: params[:nickname]
+    )
+
+    user.password = params[:password]
+
+    unless user.save
+      halt 500, TEXT_PLAIN, "ユーザー登録に失敗しました。"
+    end
+
+    redirect "/login"
   end
 
   get '/login' do
@@ -78,20 +104,33 @@ class MainApp < Sinatra::Base
       redirect "/mypage"
     end
 
-    if users = User.where(:login_name => params[:username])
-      if user[0].password_hash == params[:password_hash]
-        session[:user_id] = user[0].id
-        redirect "/mypage"
-      else
-        redirect "/login"
-      end
+    if login({"username" => params[:username],
+      "password_hash" => params[:password_hash]})
+      redirect "/mypage"
     else
       redirect "/login"
     end
   end
 
   get '/mypage' do
-    "loged in!"
+    unless session[:user_id]
+      redirect '/login'
+    end
+
+    @user = User.find(session[:user_id])
+
+    if @user.nickname == nil || @user.nickname == ""
+      @nickname = @user.login_name
+    else
+      @nickname = @user.nickname
+    end
+
+    haml :mypage
+  end
+
+  get '/logout' do
+    logout
+    redirect '/login'
   end
 
   post '/api/:type', :provides => [:text] do
@@ -107,7 +146,26 @@ class MainApp < Sinatra::Base
       halt 400, TEXT_PLAIN, "Posted JSON is invalid."
     end
 
+    mob_api = [ "user", "gateway_add", "gateway_del",
+      "sensor", "controller", "operation" ]
+
+    if mob_api.include?(params[:type])
+      unless session[:user_id]
+        halt 403, TEXT_PLAIN, "Not logged in."
+      end
+    end
+
     return_value = case params[:type]
+    when "login"
+      login(posted_hash) ? "OK" : "NG"
+    when "user"
+      user_update(posted_hash)
+    when "password"
+      user_password(posted_hash)
+    when "gateway_add"
+      gateway_add(posted_hash)
+    when "gateway_del"
+      gateway_del(posted_hash)
     when "sensor_data"
       sensor_data(posted_hash)
     when "sensor_alert"
@@ -586,6 +644,80 @@ class MainApp < Sinatra::Base
   end
 
   private
+  def login(posted_hash)
+    if user = User.where(:login_name => posted_hash["username"]).first
+      if user.password_hash == posted_hash["password_hash"]
+        session[:user_id] = user.id
+        true
+      else
+        false
+      end
+    else
+      false
+    end
+  end
+
+  def logout
+    session[:user_id] = nil
+  end
+
+  def user_update(posted_hash)
+    user = User.find(session[:user_id])
+
+    user.nickname = posted_hash["nickname"]
+    user.email = posted_hash["email"]
+
+    unless user.save
+      halt 500, TEXT_PLAIN, "Failed to save the user information."
+    end
+  end
+
+  def user_password(posted_hash)
+    user = User.find(session[:user_id])
+    user.password = posted_hash["password"]
+    unless user.save
+      halt 500, TEXT_PLAIN, "Failed to change your password."
+    end
+  end
+
+  def gateway_add(posted_hash)
+    if Gateway.exists?(hardware_uid: posted_hash["hardware_uid"])
+      gw = Gateway.where(hardware_uid: posted_hash["hardware_uid"]).first
+    else
+      gw = Gateway.new(
+        hardware_uid: posted_hash["hardware_uid"],
+        name: posted_hash["name"]
+      )
+
+      unless gw.save
+        halt 500, TEXT_PLAIN, "Failed to save this gateway."
+      end
+    end
+
+    unless UserGatewayRelation.exists?(
+      user_id: session[:user_id],
+      gateway_id: gw.id)
+
+      r = UserGatewayRelation.new(
+        user_id: session[:user_id],
+        gateway_id: gw.id)
+
+      unless r.save
+        halt 500, TEXT_PLAIN, "Failed to save this gateway."
+      end
+    end
+
+    "OK"
+  end
+
+  def gateway_del(posted_hash)
+    gw = Gateway.where(hardware_uid: posted_hash["hardware_uid"]).first
+
+    UserGatewayRelation.destroy_all(
+      user_id: session[:user_id],
+      gateway_id: gw.id)
+  end
+
   def sensor_data(posted_hash)
     id = posted_hash.keys[0]
 
@@ -605,29 +737,6 @@ class MainApp < Sinatra::Base
     unless obj.save
       halt 500, TEXT_PLAIN, "Failed to save sensor data."
     end
-
-    # alertの記録を別のAPIの変更
-    #mons = MonitorRange.where( device_property_id: id.to_i )
-    #
-    #unless mons.empty?
-    #  min = BigDecimal(mons[0].min_value)
-    #  max = BigDecimal(mons[0].max_value)
-    #  v = BigDecimal(val)
-    #
-    #  if v <= min || v >= max
-    #    alrt = SensorAlert.new(
-    #      device_property_id: id.to_i,
-    #      value: val,
-    #      monitor_min_value: mons[0].min_value,
-    #      monitor_max_value: mons[0].max_value,
-    #      measured_at: ts
-    #    )
-    #
-    #    unless alrt.save
-    #      halt 500, TEXT_PLAIN, "Failed to save sensor alert."
-    #    end
-    #  end
-    #end
 
     "OK"
   end

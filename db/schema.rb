@@ -13,7 +13,7 @@
 
 ActiveRecord::Schema.define(version: 20141111083446) do
 
-  create_table "device_properties", force: true do |t|
+  create_table "device_properties", force: :cascade do |t|
     t.integer  "gateway_id"
     t.integer  "device_id"
     t.string   "name"
@@ -26,7 +26,7 @@ ActiveRecord::Schema.define(version: 20141111083446) do
     t.datetime "deleted_at"
   end
 
-  create_table "devices", force: true do |t|
+  create_table "devices", force: :cascade do |t|
     t.integer  "gateway_id"
     t.string   "hardware_uid"
     t.string   "name"
@@ -36,14 +36,14 @@ ActiveRecord::Schema.define(version: 20141111083446) do
     t.datetime "updated_at"
   end
 
-  create_table "gateways", force: true do |t|
+  create_table "gateways", force: :cascade do |t|
     t.string   "hardware_uid"
     t.string   "name"
     t.datetime "created_at"
     t.datetime "updated_at"
   end
 
-  create_table "monitor_ranges", force: true do |t|
+  create_table "monitor_ranges", force: :cascade do |t|
     t.integer  "device_property_id"
     t.string   "min_value"
     t.string   "max_value"
@@ -51,7 +51,7 @@ ActiveRecord::Schema.define(version: 20141111083446) do
     t.datetime "updated_at"
   end
 
-  create_table "operations", force: true do |t|
+  create_table "operations", force: :cascade do |t|
     t.integer  "device_property_id"
     t.string   "value"
     t.string   "status"
@@ -59,7 +59,7 @@ ActiveRecord::Schema.define(version: 20141111083446) do
     t.datetime "updated_at"
   end
 
-  create_table "sensor_alerts", force: true do |t|
+  create_table "sensor_alerts", force: :cascade do |t|
     t.integer  "device_property_id"
     t.string   "value"
     t.string   "monitor_min_value"
@@ -67,7 +67,7 @@ ActiveRecord::Schema.define(version: 20141111083446) do
     t.datetime "measured_at"
   end
 
-  create_table "sensor_datas", force: true do |t|
+  create_table "sensor_datas", force: :cascade do |t|
     t.integer  "device_property_id"
     t.string   "value"
     t.datetime "measured_at"
@@ -75,7 +75,7 @@ ActiveRecord::Schema.define(version: 20141111083446) do
 
   add_index "sensor_datas", ["measured_at", "device_property_id"], name: "index_sensor_datas_on_measured_at"
 
-  create_table "sensor_hourly_datas", force: true do |t|
+  create_table "sensor_hourly_datas", force: :cascade do |t|
     t.integer  "device_property_id"
     t.string   "value"
     t.string   "min_3rd_value"
@@ -85,14 +85,14 @@ ActiveRecord::Schema.define(version: 20141111083446) do
 
   add_index "sensor_hourly_datas", ["measured_at", "device_property_id"], name: "index_sensor_hourly_datas_on_mesured_at"
 
-  create_table "user_gateway_relations", force: true do |t|
+  create_table "user_gateway_relations", force: :cascade do |t|
     t.integer  "user_id"
     t.integer  "gateway_id"
     t.datetime "created_at"
     t.datetime "updated_at"
   end
 
-  create_table "users", force: true do |t|
+  create_table "users", force: :cascade do |t|
     t.string   "login_name"
     t.string   "password_hash"
     t.string   "email"
