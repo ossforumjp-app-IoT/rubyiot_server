@@ -190,6 +190,11 @@ class MainApp < Sinatra::Base
     body return_value
   end
 
+  get '/api/logout', :provides => [:json] do
+    logout
+    JSON::generate({status: "OK"})
+  end
+
   get '/api/gateway', :provides => [:json] do
     unless session[:user_id]
       halt 403, TEXT_PLAIN, "Not logged in."

@@ -42,7 +42,9 @@ serverの機能
 以下の機能を提供します。loginセッションが必要です。
   * 自宅などのgatewayのhardware_uid登録機能
   * 温度の表示機能
-  * logout機能
+  * logout機能(/logoutへのリンク)
+* /logout  
+ログアウトし、/login にリダイレクトします。
 * /chart  
 温度変化のグラフを提供します。loginセッションが必要です。
 
@@ -159,7 +161,9 @@ loginセッションが必要です。
 * GET /api/logout  
   * 機能: loginセッションを破棄する。
   * アクセス: mobile => server
-  * GETデータ: "OK" or "NG"  
+  * GETデータ: 以下のJSON形式のデータ
+
+            { "status": "OK" }
 
 * POST /api/user
   * 機能: ログインしているユーザーのユーザー情報を更新する。

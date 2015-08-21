@@ -91,7 +91,9 @@
       }
   %body
     %h1 My Page
-    %p こんにちは、#{@nickname}さん
+    %div
+      %span こんにちは、#{@nickname}さん&nbsp;&nbsp;&nbsp;
+      %a{:href => "/logout"} [ログアウト]
     %h2 Gateway
     %form{:id => "gatewayform"}
       %fieldset
