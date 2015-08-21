@@ -125,6 +125,8 @@ class MainApp < Sinatra::Base
       @nickname = @user.nickname
     end
 
+    @gateways = user_gateway(session[:user_id])
+
     haml :mypage
   end
 
@@ -186,6 +188,28 @@ class MainApp < Sinatra::Base
 
     status 201
     body return_value
+  end
+
+  get '/api/gateway', :provides => [:json] do
+    unless session[:user_id]
+      halt 403, TEXT_PLAIN, "Not logged in."
+    end
+
+    objs = user_gateway(session[:user_id])
+    return_hash = {}
+
+    objs.each do |obj|
+      h = {
+        obj.id.to_s => {
+          "hardware_uid" => obj.hardware_uid,
+          "name" => obj.name
+        }
+      }
+
+      return_hash = return_hash.merge(h)
+    end
+
+    JSON::generate(return_hash)
   end
 
   get '/api/sensor', :provides => [:json] do
@@ -711,11 +735,11 @@ class MainApp < Sinatra::Base
   end
 
   def gateway_del(posted_hash)
-    gw = Gateway.where(hardware_uid: posted_hash["hardware_uid"]).first
-
     UserGatewayRelation.destroy_all(
       user_id: session[:user_id],
-      gateway_id: gw.id)
+      gateway_id: posted_hash["gateway_id"])
+
+    "OK"
   end
 
   def sensor_data(posted_hash)
@@ -944,5 +968,13 @@ class MainApp < Sinatra::Base
   def magnify(device_property_id, value)
     m = DeviceProperty.find(device_property_id).definitions("magnification").to_s
     m != "" ? (BigDecimal(value) * BigDecimal(m)).to_f.to_s : value
+  end
+
+  def user_gateway(user_id)
+    ug = UserGatewayRelation.where(user_id: user_id)
+    ug_ids = []
+    ug.each { |g| ug_ids << g.gateway_id }
+
+    Gateway.where(id: ug_ids)
   end
 end

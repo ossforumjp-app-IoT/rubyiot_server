@@ -189,7 +189,7 @@ loginセッションが必要です。
   * アクセス: mobile => server
   * POSTデータ: 以下のJSON形式のデータ
 
-            { "hardware_uid": "xxx" }
+            { "gateway_id": "xxx" }
 
 * GET /api/gateway  
   * 機能: ログインしているユーザーの配下にあるgatewayのリストを取得する。
