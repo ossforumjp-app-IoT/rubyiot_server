@@ -34,10 +34,47 @@ mobileから送られてきた操作の命令を、適切なgatewayに転送し�
 serverの機能
 ------------
 ### Web画面
-Web画面は現在ログイン画面のみで、他の機能と連携していません。
+
+* /login  
+ログイン画面が表示され、ユーザー名とパスワードを入力して「Login」
+ボタンをクリックすることで、loginセッションを取得します。
+* /mypage  
+以下の機能を提供します。loginセッションが必要です。
+  * 自宅などのgatewayのhardware_uid登録機能
+  * 温度の表示機能
+  * logout機能(/logoutへのリンク)
+* /logout  
+ログアウトし、/login にリダイレクトします。
+* /chart  
+温度変化のグラフを提供します。loginセッションが必要です。
 
 ### API
-以下のWeb APIを提供します。
+APIは、gatewayからの通信を受けるものと、mobileからの通信を受ける
+もの、両方の通信を受けるものの、大きく3種類に分けられます。
+現在、両方からの通信を受けるAPIを含め、gatewayからの通信では
+loginセッションは必要ありませんが、mobileからの通信では、
+loginセッションが必要です。
+
+#### gateway、mobile両方とのAPI
+
+* POST /api/monitor  
+  * 機能: sensorの監視値（上限値・下限値）を登録・更新する。
+  * アクセス: mobile, gateway => server
+  * POSTデータ: 以下の形式のJSONデータ  
+  （1階層目のkeyの"xxx"はserverで管理するsensor_id）
+
+            { "xxx": { "min": "下限値", "max": "上限値" } }
+
+* GET /api/monitor?sensor_id=xxx  
+  * 機能: sensorの監視値（上限値・下限値）を取得する。
+  * アクセス: mobile, gateway => server
+  * クエリ: sensor_id
+  * GETデータ: 以下のJSON形式のデータ
+
+            { "min": "下限値", "max": "上限値" }
+
+
+#### gateway向けのAPI
 
 * POST /api/device  
   * 機能: sensorやcontrollerが接続されたdeviceを、登録・更新する。
@@ -75,13 +112,111 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
               ]
             }
 
+* POST /api/sensor_data
+  * 機能: センサーの測定データを登録する。
+  * アクセス: gateway => server
+  * POSTデータ: 以下の形式のJSONデータ
+  （keyの"xxx"はserverで管理するsensor_id）
+
+            { "xxx": "測定値" }
+
+* POST /api/sensor_alert
+  * 機能: センサーの測定データを登録する。
+  * アクセス: gateway => server
+  * POSTデータ: 以下の形式のJSONデータ
+  （keyの"xxx"はserverで管理するsensor_id）
+
+            { "xxx": { "value": "測定値", "min": "下限値", "max": "上限値" } }
+
+* GET /api/operation?gateway_id=xxx  
+  * 機能: controllerへの操作指示を取得する。（1リクエストにつき1操作）
+  * アクセス: gateway => server
+  * クエリ: gateway_id
+  * GETデータ: 以下のJSON形式のデータ  
+  （keyの"xxx"はserverで管理するcontroller_id）  
+  （操作値はECHONET機器オブジェクト詳細規定による。今回は、0:ON, 1:OFFのみ。）
+
+            { "xxx": { "operation_id": "yyy", "value": "操作値" } }
+
+* POST /api/operation_status  
+  * 機能: controllerへの操作指示を登録する。
+  * アクセス: gateway => server
+  * POSTデータ: 以下のJSON形式のデータ
+  （keyの"xxx"はserverで管理するoperation_id、
+  実行結果は、0:成功, 1:失敗）
+
+            { "xxx": "実行結果" }
+
+
+#### mobile向けのAPI
+
+* POST /api/login  
+  * 機能: loginセッションを取得する。
+  * アクセス: mobile => server
+  * POSTデータ: 以下のJSON形式のデータ
+
+            { "username": "xxx",
+              "password_hash": "SHA-256でハッシュしたパスワード" }
+
+* GET /api/logout  
+  * 機能: loginセッションを破棄する。
+  * アクセス: mobile => server
+  * GETデータ: 以下のJSON形式のデータ
+
+            { "status": "OK" }
+
+* POST /api/user
+  * 機能: ログインしているユーザーのユーザー情報を更新する。
+  * アクセス: mobile => server
+  * POSTデータ: 以下のJSON形式のデータ
+
+            { "nickname": "xxx",
+              "email": "yyy@zzz.com" }
+
+* POST /api/password
+  * 機能: ログインしているユーザーのパスワードを更新する。
+  * アクセス: mobile => server
+  * POSTデータ: 以下のJSON形式のデータ
+
+            { "password": "xxx" }
+
+* POST /api/gateway_add  
+  * 機能: 自宅などのgatewayを追加する。
+  * アクセス: mobile => server
+  * POSTデータ: 以下のJSON形式のデータ
+
+            { "hardware_uid": "xxx",
+              "name": "gatewayの任意の名前" }
+
+* POST /api/gateway_del  
+  * 機能: 自宅などのgatewayを削除する。
+  * アクセス: mobile => server
+  * POSTデータ: 以下のJSON形式のデータ
+
+            { "gateway_id": "xxx" }
+
+* GET /api/gateway  
+  * 機能: ログインしているユーザーの配下にあるgatewayのリストを取得する。
+  * アクセス: mobile => server
+  * クエリ: gateway_id
+  * GETデータ: 以下のJSON形式のデータ  
+  （keyの"xxx"はserverで管理するgateway_id）
+
+            { "xxx":
+              { "hardware_uid": "yyy",
+                "name": "gatewayの名前" },
+
+              ...
+
+            }
+
 * POST /api/sensor  
   * 機能: sensorの名前を登録・更新する。
   * アクセス: mobile => server
   * POSTデータ: 以下のJSON形式のデータ
   （keyの"xxx"はserverで管理するsensor_id）
 
-            { "xxx": { "name": "センサーの名前" } }
+            { "xxx": { "name": "センサーの任意の名前" } }
 
 * GET /api/sensor?gateway_id=xxx  
   * 機能: 指定したgatewayの配下にあるsensorのリストを取得する。
@@ -142,30 +277,6 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
 
             }
 
-* POST /api/monitor  
-  * 機能: sensorの監視値（上限値・下限値）を登録・更新する。
-  * アクセス: mobile, gateway => server
-  * POSTデータ: 以下の形式のJSONデータ  
-  （1階層目のkeyの"xxx"はserverで管理するsensor_id）
-
-            { "xxx": { "min": "下限値", "max": "上限値" } }
-
-* GET /api/monitor?sensor_id=xxx  
-  * 機能: sensorの監視値（上限値・下限値）を取得する。
-  * アクセス: mobile, gateway => server
-  * クエリ: sensor_id
-  * GETデータ: 以下のJSON形式のデータ
-
-            { "min": "下限値", "max": "上限値" }
-
-* POST /api/sensor_data
-  * 機能: センサーの測定データを登録する。
-  * アクセス: gateway => server
-  * POSTデータ: 以下の形式のJSONデータ
-  （keyの"xxx"はserverで管理するsensor_id）
-
-            { "xxx": "測定値" }
-
 * GET /api/sensor_data?sensor_id=xxx&start=2014-10-10+12:00:00&span=daily  
   * 機能: serverに蓄積されたセンサーの測定データを取得する。
   * アクセス: mobile => server
@@ -185,14 +296,6 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
   | weekly     | 6時間 |  28 |
   | monthly    |   1日 |  31 |
   | yearly     |  10日 |  36 |
-
-* POST /api/sensor_alert
-  * 機能: センサーの測定データを登録する。
-  * アクセス: gateway => server
-  * POSTデータ: 以下の形式のJSONデータ
-  （keyの"xxx"はserverで管理するsensor_id）
-
-            { "xxx": { "value": "測定値", "min": "下限値", "max": "上限値" } }
 
 * GET /api/sensor_alert?sensor_id=xxx&datetime=2014-10-10+12:00:00  
   * 機能: 現在もしくは指定した時刻の測定値が、異常値であったかを取得する。
@@ -216,25 +319,6 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
 
             { "operation_id": "xxx" }
 
-* GET /api/operation?gateway_id=xxx  
-  * 機能: controllerへの操作指示を取得する。（1リクエストにつき1操作）
-  * アクセス: gateway => server
-  * クエリ: gateway_id
-  * GETデータ: 以下のJSON形式のデータ  
-  （keyの"xxx"はserverで管理するcontroller_id）  
-  （操作値はECHONET機器オブジェクト詳細規定による。今回は、0:ON, 1:OFFのみ。）
-
-            { "xxx": { "operation_id": "yyy", "value": "操作値" } }
-
-* POST /api/operation_status  
-  * 機能: controllerへの操作指示を登録する。
-  * アクセス: gateway => server
-  * POSTデータ: 以下のJSON形式のデータ
-  （keyの"xxx"はserverで管理するoperation_id、
-  実行結果は、0:成功, 1:失敗）
-
-            { "xxx": "実行結果" }
-
 * GET /api/operation_status?operation_id=xxx  
   * 機能: controllerへの操作指示の内容と状態を取得する。
   * アクセス: mobile => server
@@ -249,7 +333,7 @@ Web画面は現在ログイン画面のみで、他の機能と連携してい�
 --------
 ### 動作環境
 最低限、以下のソフトウェアがインストールされている必要があります。
-* Ruby 2.1.3
+* Ruby 2.2.2
 * SQLite 3（開発環境）
 * MySQL 5.5（本番環境）
 

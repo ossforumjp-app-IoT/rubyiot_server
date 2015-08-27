@@ -74,10 +74,9 @@ end
 
 class User < ActiveRecord::Base
   has_many :user_gateway_relations
-  attr_readonly :password_hash
 
-  def password(s)
-    @password_hash = Digest::SHA256.hexdigest(s)
+  def password=(s)
+    self.password_hash = Digest::SHA256.hexdigest(s)
   end
 end
 

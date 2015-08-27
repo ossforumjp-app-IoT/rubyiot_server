@@ -1,10 +1,11 @@
 !!!
 %haml{:lang => "ja"}
   %head
+    %meta{:content => "width=device-width, initial-scale=1.0", :name => "viewport"}
     %script{:type => "text/javascript", :src => "/js/sha.js"}
     :javascript
-      function login(password){
-        var frm = document.loginform
+      function login(){
+        var frm = document.loginform;
         if(frm.elements["username"].value==""){
           alert("ユーザー名を入力してください");
         }else if(frm.elements["password"].value==""){
@@ -12,8 +13,8 @@
         }else{
           var pwd = frm.elements["password"].value;
           var shaObj = new jsSHA(pwd, "ASCII");
-          frm.elements["password_hash"] = shaObj.getHash("SHA-256", "HEX");
-          frm.elements["password"] = ""
+          frm.elements["password_hash"].value = shaObj.getHash("SHA-256", "HEX");
+          frm.elements["password"].value = "";
           frm.submit();
         }
       }
@@ -29,4 +30,4 @@
           %input{:name => "password", :type => "password", :value => ""}
           %input{:name => "password_hash", :type => "hidden", :value => ""}
         %p
-          %input{:type => "button", :value => "Login", :onclick => "return login(this.form)"}
+          %input{:type => "button", :value => "Login", :onclick => "return login()"}

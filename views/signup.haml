@@ -1,0 +1,39 @@
+!!!
+%haml{:lang => "ja"}
+  %head
+    %meta{:content => "width=device-width, initial-scale=1.0", :name => "viewport"}
+    :javascript
+      function signUp(){
+        var frm = document.signupform;
+        if(frm.elements["username"].value == ""){
+          alert("ユーザー名を入力してください");
+        }else if(frm.elements["password"].value == ""){
+          alert("パスワードを入力してください");
+        }else if(frm.elements["password"].value != frm.elements["confirm_password"].value){
+          alert("パスワードと確認が違っています");
+        }else{
+          frm.elements["confirm_password"].value = "";
+          frm.submit();
+        }
+      }
+  %body
+%h1 Sign Up
+%form{:name => "signupform", :action => '/signup', :method => 'post'}
+  %fieldset
+    %p
+      %label{:for => "username"} ユーザー名:
+      %input{:name => "username", :type => "text", :value => ""}
+    %p
+      %label{:for => "nickname"} ニックネーム（省略可）:
+      %input{:name => "nickname", :type => "text", :value => ""}
+    %p
+      %label{:for => "email"} メールアドレス（省略可）:
+      %input{:name => "email", :type => "text", :value => ""}
+    %p
+      %label{:for => "password"} パスワード:
+      %input{:name => "password", :type => "password", :value => ""}
+    %p
+      %label{:for => "confirm_password"} パスワード（確認）:
+      %input{:name =>  "confirm_password", :type => "password", :value => ""}
+    %p
+      %input{:type => "button", :value => "Sign Up", :onclick => "return signUp()"}

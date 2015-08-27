@@ -1,0 +1,140 @@
+!!!
+%haml{:lang => "ja"}
+  %head
+    %meta{:content => "width=device-width, initial-scale=1.0", :name => "viewport"}
+    %script{:type => "text/javascript", :src => "/js/jquery-1.11.1.min.js"}
+    :javascript
+      function addGateway(){
+        if( $("#gatewayform [name=hardwareuid]").val() == "" ){
+          alert("ハードウェアIDを入力してください");
+        }else if( $("#gatewayform [name=gatewayname]").val() == "" ){
+          alert("ゲートウェイの名前を入力してください");
+        }else{
+          var postdata = {
+            hardware_uid: $("#gatewayform [name=hardwareuid]").val(),
+            name: $("#gatewayform [name=gatewayname]").val()
+          };
+          $.post(
+            "/api/gateway_add",
+            JSON.stringify(postdata),
+            function(){
+              alert("ゲートウェイを登録しました");
+              $.getJSON(
+                "/api/gateway",
+                function(getdata, status){
+                  var list = $("#gatewayform [name=gatewaylist]");
+                  list.empty();
+                  list.append('<option value="0">ゲートウェイ一覧</option>');
+                  for(var k in getdata){
+                    list.append('<option value="' + k + '">' + getdata[k].name + '</option>');
+                  }
+                }
+              );
+            }
+          );
+        }
+      }
+      function delGateway(){
+        var gid = $("#gatewayform [name=gatewaylist]").val();
+        if(gid > 0){
+          data = { gateway_id: gid };
+          $.post(
+            "/api/gateway_del",
+            JSON.stringify(data),
+            function(){
+              alert("ゲートウェイの登録を解除しました");
+              $("#gatewayform [name=gatewaylist] option[value=" + gid + "]").remove();
+            }
+          );
+        }
+      }
+      function selectGateway(){
+        var gatewayId = $("#gatewayform [name=gatewaylist]").val();
+        if(gatewayId == 0){
+          $("#sensorlist").text("ゲートウェイを選択すると表示されます。");
+        }else{
+          $.getJSON(
+            "/api/sensor?gateway_id=" + gatewayId,
+            function(data, status){
+              $("#sensorlist").text("");
+              $("#sensorlist").empty();
+              if(Object.keys(data).length == 0){
+                $("#sensorlist").text("選択したゲートウェイにはセンサーが接続されていません。");
+              }else{
+                for(var k in data){
+                  $("#sensorlist").append("<p>" + data[k].name + ": " + data[k].value + data[k].unit + "</p>");
+                }
+              }
+            }
+          );
+        }
+      }
+      function updateUser(){
+        var data = {
+          nickname: $("#userform [name=nickname]").val(),
+          email: $("#userform [name=email]").val()
+        };
+        $.post("/api/user", JSON.stringify(data));
+        alert("ユーザー情報を更新しました。");
+        location.reload();
+      }
+      function changePassword(){
+        if( $("#passwordform [name=password]").val() == "" ){
+          alert("パスワードを入力してください");
+        }else if( $("#passwordform [name=password]").val() != $("#passwordform [name=confirm_password]").val() ){
+          alert("パスワードと確認が違っています");
+        }else{
+          data = { password: $("#passwordform [name=password]").val() };
+          $.post("/api/password", JSON.stringify(data));
+          alert("パスワードを変更しました。");
+        }
+      }
+  %body
+    %h1 My Page
+    %div
+      %span こんにちは、#{@nickname}さん&nbsp;&nbsp;&nbsp;
+      %a{:href => "/logout"} [ログアウト]
+    %h2 Gateway
+    %form{:id => "gatewayform"}
+      %fieldset
+        %h3 ゲートウェイ追加:
+        %p
+          %label{:for => "hardwareuid"} ハードウェアID:
+          %input{:name => "hardwareuid", :type => "text", :value => ""}
+        %p
+          %label{:for => "gatewayname"} ゲートウェイの名前:
+          %input{:name => "gatewayname", :type => "text", :value => ""}
+          %input{:type => "button", :value => "Add", :onclick => "return addGateway()"}
+        %h3 登録済ゲートウェイ:
+        %p
+          %select{:name => "gatewaylist", :size => 4, :onclick => "return selectGateway()"}
+            %option{:value => "0"} ゲートウェイ一覧
+            - if @gateways
+              - @gateways.each do |g|
+                %option{:value => "#{g.id}"} #{g.name}
+          %input{:type => "button", :value => "Del", :onclick => "return delGateway()"}
+    %h2 Sensor Data
+    %div{:id => "sensorlist"} ゲートウェイを選択すると表示されます。
+    %h2 User info
+    %form{:id => "userform"}
+      %fieldset
+        %p ユーザー名: #{@user.login_name}
+        %p
+          %label{:for => "nickname"} ニックネーム:
+          %input{:name => "nickname", :type => "text", :value => "#{@user.nickname}"}
+        %p
+          %label{:for => "email"} メールアドレス:
+          %input{:name => "email", :type => "text", :value => "#{@user.email}"}
+        %p
+          %input{:type => "button", :value => "Update", :onclick => "return updateUser()"}
+    %h2 Password
+    %form{:id => "passwordform"}
+      %fieldset
+        %p
+          %label{:for => "password"} パスワード:
+          %input{:name => "password", :type => "password", :value => ""}
+        %p
+          %label{:for => "confirm_password"} パスワード（確認）:
+          %input{:name =>  "confirm_password", :type => "password", :value => ""}
+        %p
+          %input{:type => "button", :value => "ChangePassword", :onclick => "return changePassword()"}
