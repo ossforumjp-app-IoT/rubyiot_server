@@ -16,4 +16,6 @@ group :test do
   gem "rack-test"
   gem "json_spec"
   gem "simplecov", require: false
+  gem "factory_girl"
+  gem "database_rewinder"
 end
