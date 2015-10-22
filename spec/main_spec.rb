@@ -42,15 +42,14 @@ RSpec.describe MainApp do
   describe "/api/sensorへのアクセス" do
     context "GET" do
       before do
-        DeviceProperty.delete_all
-        SensorData.delete_all
+        send_gateway_id = 12   # 適当につけた値
+        @dp1 = create(:sensor_dp, gateway_id: send_gateway_id)
+        @dp2 = create(:sensor_dp, gateway_id: send_gateway_id)
+        create(:sensor_data, device_property_id: @dp1.id)
+        create(:sensor_data, device_property_id: @dp2.id)
+        user = create(:user)
 
-        @dp1 = DeviceProperty.create(gateway_id: 12, name: "dp1", sensor: true)
-        @dp2 = DeviceProperty.create(gateway_id: 12, name: "dp2", sensor: true)
-        SensorData.create(device_property_id: @dp1.id, measured_at: Time.now)
-        SensorData.create(device_property_id: @dp2.id, measured_at: Time.now)
-
-        get "/api/sensor", gateway_id: "12"
+        get "/api/sensor", { gateway_id: send_gateway_id.to_s }, { "rack.session" => { user_id: user.id } }
       end
 
       include_examples "return_status_code", 200
@@ -67,9 +66,10 @@ RSpec.describe MainApp do
     context "POST" do
       posted_data = { "10" => { "name" => "name1" } }
       before do
-        DeviceProperty.delete_all
-        DeviceProperty.create(id: posted_data.keys[0].to_i)
-        post "/api/sensor", posted_data.to_json
+        create(:sensor_dp, id: posted_data.keys[0].to_i)
+        user = create(:user)
+
+        post "/api/sensor", posted_data.to_json, { "rack.session" => { user_id: user.id } }
       end
 
       include_examples "return_status_code", 201
@@ -85,18 +85,24 @@ RSpec.describe MainApp do
     describe "GET" do
       context "daily" do
         before do
-          DeviceProperty.delete_all
-          SensorHourlyData.delete_all
-          dp = DeviceProperty.create(sensor: true)
+          dp = create(:sensor_dp)
           base_time = Time.now - 3*24*60*60 # 現在時刻の3日前
 
-          @shd1 = SensorHourlyData.create(device_property_id: dp.id, measured_at: base_time + 60*60, value: "123")
-          @shd2 = SensorHourlyData.create(device_property_id: dp.id, measured_at: base_time + 2*60*60, value: "456")
-          @shd3 = SensorHourlyData.create(device_property_id: dp.id, measured_at: base_time + 3*60*60, value: "789")
+          @shd1 = create(:sensor_hourly_data, device_property_id: dp.id,
+                                              measured_at: base_time + 60*60,
+                                              value: "123")
+          @shd2 = create(:sensor_hourly_data, device_property_id: dp.id,
+                                              measured_at: base_time + 2*60*60,
+                                              value: "456")
+          @shd3 = create(:sensor_hourly_data, device_property_id: dp.id,
+                                              measured_at: base_time + 3*60*60,                                                  value: "789")
 
-          @sd1 = SensorData.create(device_property_id: dp.id, measured_at: base_time + 60*60)
-          @sd2 = SensorData.create(device_property_id: dp.id, measured_at: base_time + 2*60*60)
-          @sd3 = SensorData.create(device_property_id: dp.id, measured_at: base_time + 3*60*60)
+          @sd1 = create(:sensor_data, device_property_id: dp.id,
+                                      measured_at: base_time + 60*60)
+          @sd2 = create(:sensor_data, device_property_id: dp.id,
+                                      measured_at: base_time + 2*60*60)
+          @sd3 = create(:sensor_data, device_property_id: dp.id,
+                                      measured_at: base_time + 3*60*60)
           get "/api/sensor_data", sensor_id: dp.id, start: base_time.to_s, span: "daily"
         end
 
@@ -113,14 +119,12 @@ RSpec.describe MainApp do
 
       context "hourly" do
         before do
-          DeviceProperty.delete_all
-          SensorHourlyData.delete_all
-          dp = DeviceProperty.create(sensor: true)
+          dp = create(:sensor_dp)
           base_time = Time.now - 1*24*60*60 # 現在時刻の1日前
 
-          @sd1 = SensorData.create(device_property_id: dp.id, measured_at: base_time + 60*60, value: "123")
-          @sd2 = SensorData.create(device_property_id: dp.id, measured_at: base_time + 2*60, value: "456")
-          @sd3 = SensorData.create(device_property_id: dp.id, measured_at: base_time + 3*60, value: "789")
+          @sd1 = create(:sensor_data, device_property_id: dp.id, measured_at: base_time + 60*60, value: "123")
+          @sd2 = create(:sensor_data, device_property_id: dp.id, measured_at: base_time + 2*60, value: "456")
+          @sd3 = create(:sensor_data, device_property_id: dp.id, measured_at: base_time + 3*60, value: "789")
           get "/api/sensor_data", sensor_id: dp.id, start: base_time.to_s, span: "hourly"
         end
 
@@ -139,8 +143,7 @@ RSpec.describe MainApp do
     context "POST" do
       posted_data = { "10" => "measured_data" }
       before do
-        DeviceProperty.delete_all
-        DeviceProperty.create(id: posted_data.keys[0].to_i, sensor: true)
+        create(:sensor_dp, id: posted_data.keys[0].to_i)
         post "/api/sensor_data", posted_data.to_json
       end
 
@@ -157,12 +160,9 @@ RSpec.describe MainApp do
   describe "/api/sensor_alertへのアクセス" do
     context "GET" do
       before do
-        DeviceProperty.delete_all
-        SensorAlert.delete_all
-
         base_time = Time.now - 3*24*60*60 # 現在時刻の3日前
-        dp1 = DeviceProperty.create(name: "dp1", sensor: true)
-        @sa = SensorAlert.create(device_property_id: dp1.id, measured_at: base_time, value: "123")
+        dp1 = create(:sensor_dp)
+        @sa = create(:sensor_alert, device_property_id: dp1.id, measured_at: base_time)
 
         get "/api/sensor_alert", sensor_id: dp1.id, datetime: base_time.strftime("%Y-%m-%d %H:%M:%S")
       end
@@ -177,8 +177,7 @@ RSpec.describe MainApp do
     context "POST" do
       posted_data = { "10" => { "value" => "val1", "min": "min1", "max": "max1" } }
       before do
-        DeviceProperty.delete_all
-        DeviceProperty.create(id: posted_data.keys[0].to_i, sensor: true)
+        create(:sensor_dp, id: posted_data.keys[0].to_i)
         post "/api/sensor_alert", posted_data.to_json
       end
 
@@ -197,11 +196,8 @@ RSpec.describe MainApp do
   describe "/api/operationへのアクセス" do
     context "GET" do
       before do
-        DeviceProperty.delete_all
-        Operation.delete_all
-
-        @dp = DeviceProperty.create(gateway_id: 126, sensor: false)
-        @op = Operation.create(device_property_id: @dp.id, value: "123")
+        @dp = create(:not_sensor_dp, gateway_id: 126)
+        @op = create(:operation, device_property_id: @dp.id)
 
         get "/api/operation", gateway_id: @dp.gateway_id
       end
@@ -216,9 +212,10 @@ RSpec.describe MainApp do
     context "POST" do
       posted_data = { "10" => "operation_value" }
       before do
-        DeviceProperty.delete_all
-        DeviceProperty.create(id: posted_data.keys[0].to_i, sensor: false)
-        post "/api/operation", posted_data.to_json
+        create(:not_sensor_dp, id: posted_data.keys[0].to_i)
+        user = create(:user)
+
+        post "/api/operation", posted_data.to_json, { "rack.session" => { user_id: user.id }}
       end
 
       include_examples "return_status_code", 201
@@ -237,9 +234,7 @@ RSpec.describe MainApp do
   describe "/api/operation_statusへのアクセス" do
     context "GET" do
       before do
-        Operation.delete_all
-
-        @op = Operation.create(value: "123")
+        @op = create(:operation)
 
         get "/api/operation_status", operation_id: @op.id
       end
@@ -255,8 +250,7 @@ RSpec.describe MainApp do
     context "POST" do
       posted_data = { "10" => "0" }
       before do
-        Operation.delete_all
-        Operation.create(id: posted_data.keys[0].to_i)
+        create(:operation, id: posted_data.keys[0].to_i)
         post "/api/operation_status", posted_data.to_json
       end
 
@@ -284,8 +278,6 @@ RSpec.describe MainApp do
     }
 
     before do
-      Device.delete_all
-      DeviceProperty.delete_all
       post "/api/device", posted_data.to_json
     end
 
@@ -307,13 +299,10 @@ RSpec.describe MainApp do
   describe "/api/controllerへのアクセス" do
     context "GET" do
       before do
-        DeviceProperty.delete_all
-        Operation.delete_all
-
-        @dp1 = DeviceProperty.create(gateway_id: 12, name: "dp1", sensor: false)
-        @dp2 = DeviceProperty.create(gateway_id: 12, name: "dp2", sensor: false)
-        Operation.create(device_property_id: @dp1.id, status: 0)
-        Operation.create(device_property_id: @dp2.id, status: 0)
+        @dp1 = create(:not_sensor_dp, gateway_id: 12)
+        @dp2 = create(:not_sensor_dp, gateway_id: 12)
+        create(:operation, device_property_id: @dp1.id, status: 0)
+        create(:operation, device_property_id: @dp2.id, status: 0)
 
         get "/api/controller", gateway_id: "12"
       end
@@ -332,9 +321,10 @@ RSpec.describe MainApp do
     context "POST" do
       posted_data = { "10" => { "name" => "name1" } }
       before do
-        DeviceProperty.delete_all
-        DeviceProperty.create(id: posted_data.keys[0].to_i)
-        post "/api/sensor", posted_data.to_json
+        create(:sensor_dp, id: posted_data.keys[0].to_i)
+        user = create(:user)
+
+        post "/api/sensor", posted_data.to_json, { "rack.session" => { user_id: user.id }}
       end
 
       include_examples "return_status_code", 201
@@ -349,13 +339,12 @@ RSpec.describe MainApp do
   describe "/api/monitorへのアクセス" do
     context "GET" do
       before do
-        MonitorRange.delete_all
-        DeviceProperty.delete_all
+        send_device_property_id = 124 # 適当に選択したid
 
-        MonitorRange.create(device_property_id: 124, min_value: 101, max_value: 4321)
-        DeviceProperty.create(id: 124)
+        create(:monitor_range, device_property_id: send_device_property_id, min_value: 101, max_value: 4321)
+        create(:sensor_dp, id: send_device_property_id)
 
-        get "/api/monitor", sensor_id: 124
+        get "/api/monitor", sensor_id: send_device_property_id
       end
 
       include_examples "return_status_code", 200
@@ -372,8 +361,7 @@ RSpec.describe MainApp do
     context "POST" do
       posted_data = { "10" => { "min" => "12", "max" => "43" } }
       before do
-        DeviceProperty.delete_all
-        DeviceProperty.create(id: posted_data.keys[0].to_i, sensor: true)
+        create(:sensor_dp, id: posted_data.keys[0].to_i)
         post "/api/monitor", posted_data.to_json
       end
 
@@ -390,11 +378,9 @@ RSpec.describe MainApp do
 
   describe "/api/sensor_data_sumへのアクセス" do
     before do
-      SensorData.delete_all
-
       base_time = Time.now - 3 * 24 * 60 * 60 # 現在時刻の3日前
-      @sd1 = SensorData.create(device_property_id: "121", measured_at: base_time, value: "111")
-      @sd2 = SensorData.create(device_property_id: "122", measured_at: base_time - 24 * 60 * 60, value: "222")
+      @sd1 = create(:sensor_data, device_property_id: "121", measured_at: base_time, value: "111")
+      @sd2 = create(:sensor_data, device_property_id: "122", measured_at: base_time - 24 * 60 * 60, value: "222")
 
       get "/api/sensor_data_sum"
     end
