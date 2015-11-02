@@ -82,7 +82,8 @@ loginセッションが必要です。
   * POSTデータ: 以下のJSON形式のデータ  
   （各codeはECHONET機器オブジェクト詳細規定による。）
 
-            { "hardware_uid": "<Seriarl、MACなど>"
+            { "gateway_uid": "<gatewayのhardware_uid(Seriarl、MACなど)>",
+              "device_uid": "<deviceのhardware_uid(Seriarl、MACなど)>",
               "properties":
               [
                 { "class_group_code": "0x00",
