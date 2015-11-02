@@ -841,35 +841,38 @@ class MainApp < Sinatra::Base
   def device(posted_hash)
     posted_hash = posted_hash.symbolize_keys
 
-    [:hardware_uid, :class_group_code, :class_code, :properties].each { |k|
-      unless posted_hash.has_key?(k)
-        halt 400, TEXT_PLAIN, "'#{k.to_s}' is not found."
-      end
-    }
+    [:gateway_uid, :device_uid, :class_group_code, :class_code, :properties].each do |k|
+      halt(400, TEXT_PLAIN, "'#{k.to_s}' key is not found.") unless posted_hash.has_key?(k)
+    end
+
+    if Gateway.exists?(hardware_uid: posted_hash[:gateway_uid])
+      gateway_id = Gateway.where(hardware_uid: posted_hash[:gateway_uid])[0]
+      posted_hash.delete(:gateway_uid)
+    else
+      halt 400, TEXT_PLAIN, "Posted gateway not found."
+    end
 
     # propertiesを変数に代入して、ハッシュから削除
     pties = posted_hash.delete(:properties)
 
-    # gateway_idは暫定
-    gateway_id = 1
     if Device.where(hardware_uid: posted_hash[:hardware_uid]).exists?
       device = Device.where(hardware_uid: posted_hash[:hardware_uid])[0]
     else
       device = Device.new({ gateway_id: gateway_id }.merge(posted_hash))
     end
 
-    ary = []
-    p_ary = []
-    ids = []
+    unless device.save
+      halt 500, TEXT_PLAIN, "Failed to update device."
+    end
 
-    pties.each { |h|
+    ary = []
+
+    pties.each do |h|
       h = h.symbolize_keys
 
-      [:class_group_code, :class_code, :property_code, :type].each { |k|
-        unless h.has_key?(k)
-          halt 400, TEXT_PLAIN, "'properties'.'#{k.to_s}' is not found."
-        end
-      }
+      [:class_group_code, :class_code, :property_code, :type].each do |k|
+        halt(400, TEXT_PLAIN, "'properties'.'#{k.to_s}' key is not found.") unless h.has_key?(k)
+      end
 
       properties = DeviceProperty.where(
         device_id: device.id,
@@ -889,7 +892,12 @@ class MainApp < Sinatra::Base
         )
       else
         property = properties[0]
+        property.gateway_id = gateway_id
         property.lrestore
+      end
+
+      unless property.save
+        halt 500, TEXT_PLAIN, "Failed to save property '#{property.id.to_s}'."
       end
 
       ary << {
@@ -898,22 +906,10 @@ class MainApp < Sinatra::Base
         "class_code" => h[:class_code],
         "property_code" => h[:property_code]
       }
-      p_ary << property
-      ids << property.id
-    }
-
-    unless device.save
-      halt 500, TEXT_PLAIN, "Failed to update device."
     end
 
-    p_ary.each { |property|
-      unless property.save
-        halt 500, TEXT_PLAIN, "Failed to save property '#{property.id.to_s}'."
-      end
-    }
-
     objs = DeviceProperty.where(device_id: device.id)
-    objs.where.not(id: ids)
+    objs.where.not(id: ary.map{ |h| h["id"].to_i })
     objs.each { |obj|
       obj.ldelete
       obj.save
