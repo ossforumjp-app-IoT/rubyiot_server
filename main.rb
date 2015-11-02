@@ -855,6 +855,9 @@ class MainApp < Sinatra::Base
     # propertiesを変数に代入して、ハッシュから削除
     pties = posted_hash.delete(:properties)
 
+    posted_hash[:hardware_uid] = posted_hash[:device_uid]
+    posted_hash.delete(:device_uid)
+
     if Device.where(hardware_uid: posted_hash[:hardware_uid]).exists?
       device = Device.where(hardware_uid: posted_hash[:hardware_uid])[0]
     else
@@ -908,12 +911,8 @@ class MainApp < Sinatra::Base
       }
     end
 
-    objs = DeviceProperty.where(device_id: device.id)
-    objs.where.not(id: ary.map{ |h| h["id"].to_i })
-    objs.each { |obj|
-      obj.ldelete
-      obj.save
-    }
+    objs = DeviceProperty.where(device_id: device.id).where.not(id: ary.map{ |h| h["id"].to_i })
+    objs.each { |obj| obj.ldelete; obj.save }
 
     JSON::generate({device.id.to_s => ary})
   end
