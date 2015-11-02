@@ -39,6 +39,7 @@ Gemfile.lock
 /backup/
 /log/
 /vendor/
+/db/database.yml
 *.db
 
 bundle/
