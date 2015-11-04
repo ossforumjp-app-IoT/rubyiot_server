@@ -846,7 +846,7 @@ class MainApp < Sinatra::Base
     end
 
     if Gateway.exists?(hardware_uid: posted_hash[:gateway_uid])
-      gateway_id = Gateway.where(hardware_uid: posted_hash[:gateway_uid])[0]
+      gateway_id = Gateway.where(hardware_uid: posted_hash[:gateway_uid])[0].id
       posted_hash.delete(:gateway_uid)
     else
       halt 400, TEXT_PLAIN, "Posted gateway not found."
