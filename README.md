@@ -129,10 +129,10 @@ loginセッションが必要です。
 
             { "xxx": { "value": "測定値", "min": "下限値", "max": "上限値" } }
 
-* GET /api/operation?gateway_id=xxx  
+* GET /api/operation?< hardware_uid=xxx | gateway_id=xxx >
   * 機能: controllerへの操作指示を取得する。（1リクエストにつき1操作）
   * アクセス: gateway => server
-  * クエリ: gateway_id
+  * クエリ: hardware_uid or gateway_id
   * GETデータ: 以下のJSON形式のデータ  
   （keyの"xxx"はserverで管理するcontroller_id）  
   （操作値はECHONET機器オブジェクト詳細規定による。今回は、0:ON, 1:OFFのみ。）
@@ -199,7 +199,6 @@ loginセッションが必要です。
 * GET /api/gateway  
   * 機能: ログインしているユーザーの配下にあるgatewayのリストを取得する。
   * アクセス: mobile => server
-  * クエリ: gateway_id
   * GETデータ: 以下のJSON形式のデータ  
   （keyの"xxx"はserverで管理するgateway_id）
 

@@ -563,17 +563,18 @@ class MainApp < Sinatra::Base
   end
 
   get '/api/operation', :provides => [:json] do
-    unless params[:gateway_id]
-      halt 400, TEXT_PLAIN, "Parameter gateway_id is needed."
+    unless (params[:hardware_uid] || params[:gateway_id])
+      halt 400, TEXT_PLAIN, "Parameter hardware_uid or gateway_id is needed."
     end
 
-    gateway_id = params[:gateway_id].to_i
+    gateway_id = params[:gateway_id].to_i if params[:gateway_id]
+    gateway_id = Gateway.where(hardware_uid: params[:hardware_uid])[0].id if params[:hardware_uid]
     dps = DeviceProperty.lwhere(gateway_id: gateway_id, sensor: false).select(:id)
 
     h = {}
 
     unless dps.empty?
-      dps.each { |dp|
+      dps.each do |dp|
         op = Operation.pop(dp.id)
 
         if op
@@ -583,7 +584,7 @@ class MainApp < Sinatra::Base
           }
           break
         end
-      }
+      end
     end
 
     JSON::generate(h)
