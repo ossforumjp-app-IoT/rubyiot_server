@@ -175,7 +175,7 @@ RSpec.describe MainApp do
     end
 
     context "POST" do
-      posted_data = { "10" => { "value" => "val1", "min": "min1", "max": "max1" } }
+      posted_data = { "10" => { "value" => "val1", "min" => "min1", "max" => "max1" } }
       before do
         create(:sensor_dp, id: posted_data.keys[0].to_i)
         post "/api/sensor_alert", posted_data.to_json
