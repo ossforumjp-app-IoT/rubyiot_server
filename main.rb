@@ -408,9 +408,11 @@ class MainApp < Sinatra::Base
         objs = SensorData.where(w).select(date_format).uniq
 
         objs.each { |obj|
-          if obj.at == nil || t > (start_time + span_def["daily"][:span])
-            break
-          end
+          # 当初はt > start_time + span_def["daily"][:span] という式があったが
+          # tがnilであったため落ちることが分かった。これまでの記述からtは
+          # start_timeであると思われるため、式変換してspan_def["daily"][:span] < 0
+          # とした。
+          break if obj.at.nil? || span_def["daily"][:span] < 0
 
           t = Time.parse(obj.at)
 
