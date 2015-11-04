@@ -274,10 +274,13 @@ RSpec.describe MainApp do
                             "type" => "sensor" },
                         ],
                     "class_group_code" => "dummy",
-                    "class_code" => "dummy"
+                    "class_code" => "dummy",
+                    "gateway_uid" => "aaa",
+                    "device_uid" => "bbb"
     }
 
     before do
+      Gateway.create(hardware_uid: posted_data["gateway_uid"])
       post "/api/device", posted_data.to_json
     end
 
@@ -291,8 +294,9 @@ RSpec.describe MainApp do
     end
 
     it "Deviceのhardware_uidが設定されていること" do
-      device = Device.where(gateway_id: 1).first
-      expect(device.hardware_uid).to eq("hardware_uid")
+      gateway = Gateway.where(hardware_uid: posted_data["gateway_uid"]).first
+      device = Device.where(gateway_id: gateway.id).first
+      expect(device.hardware_uid).to eq("bbb")
     end
   end
 
