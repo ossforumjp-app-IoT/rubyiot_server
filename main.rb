@@ -400,7 +400,7 @@ class MainApp < Sinatra::Base
         when "mysql2"
           "DATE_FORMAT(measured_at, '%Y-%m-%d %H:00:00') AS at"
         when "sqlite3"
-          "strftime(measured_at, '%Y-%m-%d %H:00:00') AS at"
+          "strftime('%Y-%m-%d %H:00:00', measured_at) AS at"
         else
           "TO_CHAR(measured_at, 'YYYY-MM-DD HH24:00:00') AS at"
         end
@@ -483,7 +483,7 @@ class MainApp < Sinatra::Base
         when "mysql2"
           "DATE_FORMAT(measured_at, '%Y-%m-%d %H:00:00') AS at"
         when "sqlite3"
-          "strftime(measured_at, '%Y-%m-%d %H:00:00') AS at"
+          "strftime('%Y-%m-%d %H:00:00', measured_at) AS at"
         else
           "TO_CHAR(measured_at, 'YYYY-MM-DD HH24:00:00') AS at"
         end
