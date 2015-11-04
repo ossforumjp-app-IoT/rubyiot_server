@@ -567,8 +567,16 @@ class MainApp < Sinatra::Base
       halt 400, TEXT_PLAIN, "Parameter hardware_uid or gateway_id is needed."
     end
 
-    gateway_id = params[:gateway_id].to_i if params[:gateway_id]
-    gateway_id = Gateway.where(hardware_uid: params[:hardware_uid])[0].id if params[:hardware_uid]
+    if params[:hardware_uid]
+      if Gateway.where(hardware_uid: params[:hardware_uid]).exists?
+        gateway_id = Gateway.where(hardware_uid: params[:hardware_uid])[0].id
+      else
+        gateway_id = 0
+      end
+    elsif params[:gateway_id]
+      gateway_id = params[:gateway_id].to_i
+    end
+
     dps = DeviceProperty.lwhere(gateway_id: gateway_id, sensor: false).select(:id)
 
     h = {}
