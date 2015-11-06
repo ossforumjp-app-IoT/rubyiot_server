@@ -134,8 +134,9 @@ loginセッションが必要です。
   * アクセス: gateway => server
   * クエリ: hardware_uid or gateway_id
   * GETデータ: 以下のJSON形式のデータ  
-  （keyの"xxx"はserverで管理するcontroller_id）  
+  （keyの"xxx"はgatewayのserverで管理するgateway_id）  
   （操作値はECHONET機器オブジェクト詳細規定による。今回は、0:ON, 1:OFFのみ。）
+  （登録から60秒以内の操作指示のみ取得される。）
 
             { "xxx": { "operation_id": "yyy", "value": "操作値" } }
 
@@ -218,10 +219,10 @@ loginセッションが必要です。
 
             { "xxx": { "name": "センサーの任意の名前" } }
 
-* GET /api/sensor?gateway_id=xxx  
+* GET /api/sensor?< hardware_uid=xxx | gateway_id=xxx >  
   * 機能: 指定したgatewayの配下にあるsensorのリストを取得する。
   * アクセス: mobile => server
-  * クエリ: gateway_id
+  * クエリ: hardware_uid or gateway_id
   * GETデータ: 以下のJSON形式のデータ  
   （1階層目のkeyの"yyy"、"zzz"は、serverで管理するsensor_id）
   （2階層目のdevice_idは、serverで管理するdevice_id）
@@ -258,10 +259,10 @@ loginセッションが必要です。
 
             { "xxx": { "name": "機器と操作の内容" } }
 
-* GET /api/controller?gateway_id=xxx  
+* GET /api/controller?< hardware_uid=xxx | gateway_id=xxx >  
   * 機能: 指定したgatewayの配下にあるsensorのリストを取得する。
   * アクセス: mobile => server
-  * クエリ: gateway_id
+  * クエリ: hardware_uid or gateway_id
   * GETデータ: 以下のJSON形式のデータ  
   （1階層目のkeyの"yyy"は、serverで管理するcontroller_id）  
   （2階層目のvalue_rangeは、"min","max"による値の範囲か、操作内容と値の列挙）
@@ -353,6 +354,7 @@ loginセッションが必要です。
     $ cd rubyiot_server
     $ mkdir log
     $ mkdir tmp
+    $ cp db/database.yml.sample db/database.yml
     $ bundle install --path vendor/bundle
     $ export RAILS_ENV=production
     $ export RUBYIOT_SERVER_DATABASE_PASSWORD=secret #作成したデータベースのパスワード

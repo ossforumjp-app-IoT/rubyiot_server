@@ -218,10 +218,18 @@ class MainApp < Sinatra::Base
   end
 
   get '/api/sensor', :provides => [:json] do
-    if params[:gateway_id]
-      gateway_id = params[:gateway_id]
-    else
-      halt 400, TEXT_PLAIN, "Parameter gateway_id is needed."
+    unless (params[:hardware_uid] || params[:gateway_id])
+      halt 400, TEXT_PLAIN, "Parameter hardware_uid or gateway_id is needed."
+    end
+
+    if params[:hardware_uid]
+      if Gateway.where(hardware_uid: params[:hardware_uid]).exists?
+        gateway_id = Gateway.where(hardware_uid: params[:hardware_uid])[0].id
+      else
+        gateway_id = 0
+      end
+    elsif params[:gateway_id]
+      gateway_id = params[:gateway_id].to_i
     end
 
     objs = DeviceProperty.lwhere(gateway_id: gateway_id, sensor: true)
@@ -265,10 +273,18 @@ class MainApp < Sinatra::Base
   end
 
   get '/api/controller', :provides => [:json] do
-    if params[:gateway_id]
-      gateway_id = params[:gateway_id]
-    else
-      halt 400, TEXT_PLAIN, "Parameter gateway_id is needed."
+    unless (params[:hardware_uid] || params[:gateway_id])
+      halt 400, TEXT_PLAIN, "Parameter hardware_uid or gateway_id is needed."
+    end
+
+    if params[:hardware_uid]
+      if Gateway.where(hardware_uid: params[:hardware_uid]).exists?
+        gateway_id = Gateway.where(hardware_uid: params[:hardware_uid])[0].id
+      else
+        gateway_id = 0
+      end
+    elsif params[:gateway_id]
+      gateway_id = params[:gateway_id].to_i
     end
 
     objs = DeviceProperty.lwhere(gateway_id: gateway_id, sensor: false)
