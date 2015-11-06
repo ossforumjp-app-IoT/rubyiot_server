@@ -400,7 +400,7 @@ class MainApp < Sinatra::Base
         when "mysql2"
           "DATE_FORMAT(measured_at, '%Y-%m-%d %H:00:00') AS at"
         when "sqlite3"
-          "strftime(measured_at, '%Y-%m-%d %H:00:00') AS at"
+          "strftime('%Y-%m-%d %H:00:00', measured_at) AS at"
         else
           "TO_CHAR(measured_at, 'YYYY-MM-DD HH24:00:00') AS at"
         end
@@ -408,9 +408,7 @@ class MainApp < Sinatra::Base
         objs = SensorData.where(w).select(date_format).uniq
 
         objs.each { |obj|
-          if obj.at == nil || t > (start_time + span_def["daily"][:span])
-            break
-          end
+          break if obj.at.nil? || Time.parse(obj.at) > ( start_time + span_def["daily"][:span] )
 
           t = Time.parse(obj.at)
 
@@ -483,7 +481,7 @@ class MainApp < Sinatra::Base
         when "mysql2"
           "DATE_FORMAT(measured_at, '%Y-%m-%d %H:00:00') AS at"
         when "sqlite3"
-          "strftime(measured_at, '%Y-%m-%d %H:00:00') AS at"
+          "strftime('%Y-%m-%d %H:00:00', measured_at) AS at"
         else
           "TO_CHAR(measured_at, 'YYYY-MM-DD HH24:00:00') AS at"
         end
