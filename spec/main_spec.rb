@@ -97,11 +97,11 @@ RSpec.describe MainApp do
           @shd3 = create(:sensor_hourly_data, device_property_id: dp.id,
                                               measured_at: base_time + 3*60*60,                                                  value: "789")
 
-          @sd1 = create(:sensor_data, device_property_id: dp.id,
+          @sd1 = create(:sensor_data, device_property_id: dp.id, value: "122",
                                       measured_at: base_time + 60*60)
-          @sd2 = create(:sensor_data, device_property_id: dp.id,
+          @sd2 = create(:sensor_data, device_property_id: dp.id, value: "455",
                                       measured_at: base_time + 2*60*60)
-          @sd3 = create(:sensor_data, device_property_id: dp.id,
+          @sd3 = create(:sensor_data, device_property_id: dp.id, value: "788",
                                       measured_at: base_time + 3*60*60)
           get "/api/sensor_data", sensor_id: dp.id, start: base_time.to_s, span: "daily"
         end
@@ -112,6 +112,7 @@ RSpec.describe MainApp do
           expect(last_response.body).to be_json_eql(
             {@shd1.measured_at.strftime("%Y-%m-%d %H:%M:%S") => @shd1.value.to_f.to_s,
              @shd2.measured_at.strftime("%Y-%m-%d %H:%M:%S") => @shd2.value.to_f.to_s,
+             @sd3.measured_at.strftime("%Y-%m-%d %H:00:00") => @sd3.value.to_f.to_s,
              @shd3.measured_at.strftime("%Y-%m-%d %H:%M:%S") => @shd3.value.to_f.to_s,
           }.to_json)
         end
