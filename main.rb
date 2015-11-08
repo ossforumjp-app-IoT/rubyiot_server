@@ -866,7 +866,7 @@ class MainApp < Sinatra::Base
   def device(posted_hash)
     posted_hash = posted_hash.symbolize_keys
 
-    [:gateway_uid, :device_uid, :class_group_code, :class_code, :properties].each do |k|
+    [:gateway_uid, :device_uid, :properties].each do |k|
       halt(400, TEXT_PLAIN, "'#{k.to_s}' key is not found.") unless posted_hash.has_key?(k)
     end
 

@@ -3,6 +3,10 @@
   %head
     %meta{:content => "width=device-width, initial-scale=1.0", :name => "viewport"}
     %script{:type => "text/javascript", :src => "/js/jquery-1.11.1.min.js"}
+    :css
+      #sensorlist table {border: solid 1px #999999; border-collapse: collapse;}
+      #sensorlist th {border: solid 1px #999999; padding: 5px;}
+      #sensorlist td {border: solid 1px #999999; padding: 5px;}
     :javascript
       function addGateway(){
         if( $("#gatewayform [name=hardwareuid]").val() == "" ){
@@ -61,8 +65,18 @@
               if(Object.keys(data).length == 0){
                 $("#sensorlist").text("選択したゲートウェイにはセンサーが接続されていません。");
               }else{
+                var tabletag = '<table>';
+                tabletag += '<tr><th>ID</th><th>Name</th><th>Value</th><th>&nbsp;</th></tr>';
                 for(var k in data){
-                  $("#sensorlist").append("<p>" + data[k].name + ": " + data[k].value + data[k].unit + "</p>");
+                  tabletag += '<tr><td>' + k + '</td>';
+                  tabletag += '<td><input type="text" id="sn' + k + '" name="sensorname' + k + '" size="20" maxlength="20"></td>';
+                  tabletag += '<td>' + data[k].value + data[k].unit + '</td>';
+                  tabletag += '<td><input type="button" value="更新" onclick="updateSensorName(' + k + ')"></td></tr>';
+                }
+                tabletag += "</table>";
+                $("#sensorlist").append(tabletag);
+                for(var k2 in data){
+                  $("#sn" + k2).val(data[k2].name);
                 }
               }
             }
@@ -84,10 +98,16 @@
         }else if( $("#passwordform [name=password]").val() != $("#passwordform [name=confirm_password]").val() ){
           alert("パスワードと確認が違っています");
         }else{
-          data = { password: $("#passwordform [name=password]").val() };
+          var data = { password: $("#passwordform [name=password]").val() };
           $.post("/api/password", JSON.stringify(data));
           alert("パスワードを変更しました。");
         }
+      }
+      function updateSensorName(id){
+        var data = {};
+        data[id] = {"name": $("#sn" + id).val()};
+        $.post("/api/sensor", JSON.stringify(data));
+        alert("センサー名を更新しました。");
       }
   %body
     %h1 My Page
