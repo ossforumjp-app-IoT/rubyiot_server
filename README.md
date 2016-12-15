@@ -334,7 +334,7 @@ loginセッションが必要です。
 --------
 ### 動作環境
 最低限、以下のソフトウェアがインストールされている必要があります。
-* Ruby 2.2.2
+* Ruby 2.3.0
 * SQLite 3（開発環境）
 * MySQL 5.5（本番環境）
 
@@ -352,9 +352,7 @@ loginセッションが必要です。
 
     $ git clone https://github.com/ossforumjp-app-IoT/rubyiot_server.git
     $ cd rubyiot_server
-    $ mkdir log
-    $ mkdir tmp
-    $ cp db/database.yml.sample db/database.yml
+    $ cp db/database.yml.default db/database.yml
     $ bundle install --path vendor/bundle
     $ export RAILS_ENV=production
     $ export RUBYIOT_SERVER_DATABASE_PASSWORD=secret #作成したデータベースのパスワード
@@ -370,7 +368,7 @@ loginセッションが必要です。
 
 ライセンス
 ----------
-Copyright(C) 2015 Japan OSS Promotion Forum
+Copyright(C) 2016 Japan OSS Promotion Forum
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
